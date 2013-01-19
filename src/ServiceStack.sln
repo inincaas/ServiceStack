@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4EBD29DD-21A1-47B5-80DB-F9D58C91BED5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceStack.Common.Tests", "..\tests\ServiceStack.Common.Tests\ServiceStack.Common.Tests.csproj", "{3FA9197A-462D-44CC-9AB3-61AF414D0B45}"
@@ -59,6 +59,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceStack.Authentication.OpenId", "ServiceStack.Authentication.OpenId\ServiceStack.Authentication.OpenId.csproj", "{6E240294-9D93-4C09-9BB0-38D82A22DEEE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceStack.Api.Swagger", "ServiceStack.Api.Swagger\ServiceStack.Api.Swagger.csproj", "{01D3F057-7984-498F-8B0A-EB375701E204}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceStack.Owin.Tests", "..\tests\ServiceStack.Owin.Tests\ServiceStack.Owin.Tests.csproj", "{D66C6657-25EB-4B21-A494-14D46BB9FDDD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceStack.Owin", "ServiceStack.Owin\ServiceStack.Owin.csproj", "{34D3D80A-3ADC-476D-A914-14A68AB8DE53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -624,6 +628,56 @@ Global
 		{01D3F057-7984-498F-8B0A-EB375701E204}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{01D3F057-7984-498F-8B0A-EB375701E204}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{01D3F057-7984-498F-8B0A-EB375701E204}.Release|x86.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoDebug|Any CPU.Build.0 = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoDebug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoDebug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoDebug|x86.ActiveCfg = Debug|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoRelease|Any CPU.Build.0 = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoRelease|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoRelease|Mixed Platforms.Build.0 = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoRelease|x86.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoTouch|Any CPU.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoTouch|Any CPU.Build.0 = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoTouch|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoTouch|Mixed Platforms.Build.0 = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.MonoTouch|x86.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD}.Release|x86.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoDebug|Any CPU.Build.0 = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoDebug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoDebug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoDebug|x86.ActiveCfg = Debug|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoRelease|Any CPU.Build.0 = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoRelease|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoRelease|Mixed Platforms.Build.0 = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoRelease|x86.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoTouch|Any CPU.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoTouch|Any CPU.Build.0 = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoTouch|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoTouch|Mixed Platforms.Build.0 = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.MonoTouch|x86.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{34D3D80A-3ADC-476D-A914-14A68AB8DE53}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -640,6 +694,7 @@ Global
 		{B7F650D2-6D7E-48BE-ADCE-19076249B3B7} = {4EBD29DD-21A1-47B5-80DB-F9D58C91BED5}
 		{1A5796C5-8AB6-4676-AC20-83594AED1798} = {4EBD29DD-21A1-47B5-80DB-F9D58C91BED5}
 		{F35A169D-E832-4EA3-A2F0-61C091F3DCD9} = {4EBD29DD-21A1-47B5-80DB-F9D58C91BED5}
+		{D66C6657-25EB-4B21-A494-14D46BB9FDDD} = {4EBD29DD-21A1-47B5-80DB-F9D58C91BED5}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = ..\tests\RazorRockstars.Console\RazorRockstars.Console.csproj
