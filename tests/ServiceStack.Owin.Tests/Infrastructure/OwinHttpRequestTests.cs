@@ -3,8 +3,8 @@
     using System;
     using System.Collections.Generic;
     using Funq;
-    using ServiceStack.Owin.Infrasctructure;
     using NUnit.Framework;
+    using Owin.Infrastructure;
     using ServiceStack.WebHost.Endpoints.Tests.Support.Host;
 
     [TestFixture]

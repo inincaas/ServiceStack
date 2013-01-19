@@ -1,4 +1,4 @@
-namespace ServiceStack.Owin.Infrasctructure
+namespace ServiceStack.Owin.Infrastructure
 {
     using System;
     using System.Collections.Generic;
@@ -8,13 +8,11 @@ namespace ServiceStack.Owin.Infrasctructure
     using ServiceStack.WebHost.Endpoints;
     using ServiceStack.WebHost.Endpoints.Support;
 
-    using AppFunc = System.Func<System.Collections.Generic.IDictionary<string, object>, System.Threading.Tasks.Task>;
-
     public class AppHostDistpatcherHandler
     {
         private readonly AppHostBase _appHostBase;
 
-        public AppHostDistpatcherHandler(AppFunc next, AppHostBase appHostBase)
+        public AppHostDistpatcherHandler(Func<IDictionary<string, object>, Task> next, AppHostBase appHostBase)
         {
             _appHostBase = appHostBase;
         }

@@ -3,8 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using ServiceStack.Owin.Infrasctructure;
     using NUnit.Framework;
+    using Owin.Infrastructure;
 
     [TestFixture]
     public class OwinHttpResponseTests

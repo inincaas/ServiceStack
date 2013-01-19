@@ -40,12 +40,12 @@
     <Reference Include="System.Web" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Infrasctructure\OwinConstants.cs" />
-    <Compile Include="Infrasctructure\OwinEnvironmentExtensions.cs" />
+    <Compile Include="Infrastructure\AppHostDistpatcherHandler.cs" />
+    <Compile Include="Infrastructure\OwinConstants.cs" />
+    <Compile Include="Infrastructure\OwinEnvironmentExtensions.cs" />
+    <Compile Include="Infrastructure\OwinHttpRequest.cs" />
+    <Compile Include="Infrastructure\OwinHttpResponse.cs" />
     <Compile Include="OwinExtensions.cs" />
-    <Compile Include="Infrasctructure\AppHostDistpatcherHandler.cs" />
-    <Compile Include="Infrasctructure\OwinHttpRequest.cs" />
-    <Compile Include="Infrasctructure\OwinHttpResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

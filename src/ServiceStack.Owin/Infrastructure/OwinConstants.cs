@@ -1,4 +1,4 @@
-namespace ServiceStack.Owin.Infrasctructure
+namespace ServiceStack.Owin.Infrastructure
 {
 	public static class OwinConstants
 	{

@@ -1,6 +1,6 @@
 ﻿namespace Owin
 {
-    using ServiceStack.Owin.Infrasctructure;
+    using ServiceStack.Owin.Infrastructure;
     using ServiceStack.WebHost.Endpoints;
 
     public static class OwinExtensions

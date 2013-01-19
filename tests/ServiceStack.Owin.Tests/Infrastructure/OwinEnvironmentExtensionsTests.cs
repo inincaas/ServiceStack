@@ -1,8 +1,8 @@
 ﻿namespace ServiceStack.Owin.Tests.Infrastructure
 {
     using System.Collections.Generic;
-    using ServiceStack.Owin.Infrasctructure;
     using NUnit.Framework;
+    using Owin.Infrastructure;
 
     [TestFixture]
     public class OwinEnvironmentExtensionsTests
