@@ -39,5 +39,7 @@ namespace ServiceStack.Owin.Infrastructure
 		public const string KeepAliveHeader = "Keep-Alive";
 		public const string ConnectionHeader = "Connection";
 		public const string HostHeader = "Host";
+        public const string XForwardedFor = "X-Forwarded-For";
+        public const string XRealIp = "X-Real-IP";
 	}
 }

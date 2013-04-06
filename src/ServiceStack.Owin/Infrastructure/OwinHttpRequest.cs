@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace ServiceStack.Owin.Infrastructure
 {
     using System;
@@ -8,6 +10,7 @@ namespace ServiceStack.Owin.Infrastructure
     using System.Web;
     using Funq;
     using ServiceStack.ServiceHost;
+    using ServiceStack.Text;
     using ServiceStack.WebHost.Endpoints.Extensions;
 
     public class OwinHttpRequest : IHttpRequest
@@ -15,6 +18,8 @@ namespace ServiceStack.Owin.Infrastructure
 		private readonly IDictionary<string, object> _environment;
 		private readonly Container _container;
 		private string _responseContentType;
+        private MemoryStream _bufferedStream;
+        private Stream _inputStream;
 
 		public OwinHttpRequest(string operationName, IDictionary<string, object> environment, Container container)
 		{
@@ -37,7 +42,8 @@ namespace ServiceStack.Owin.Infrastructure
 			Headers = _environment.GetRequestHeaders();
 			HttpMethod = _environment.Get<string>(OwinConstants.RequestMethodKey);
 			Items = new Dictionary<string, object>();
-			InputStream = _environment.Get<System.IO.Stream>(OwinConstants.RequestBodyKey);
+			_inputStream = _environment.Get<Stream>(OwinConstants.RequestBodyKey);
+            IsLocal = _environment.Get<bool>(OwinConstants.IsLocalKey);
 			IsSecureConnection = _environment.Get<string>(OwinConstants.RequestSchemeKey).ToUpperInvariant() == "HTTPS";
 			PathInfo = _environment.Get<string>(OwinConstants.RequestPathKey);
 			Files = new IFile[0]; //TODO Should I be doing something here?
@@ -50,6 +56,8 @@ namespace ServiceStack.Owin.Infrastructure
 			}
 			UserHostAddress = _environment.Get<string>(OwinConstants.ServerRemoteIpAddressKey) + ":" +
 			                  _environment.Get<string>(OwinConstants.ServerRemotePortKey);
+            XForwardedFor = _environment.GetRequestHeader(OwinConstants.XForwardedFor);
+            XRealIp = _environment.GetRequestHeader(OwinConstants.XRealIp);
 		}
 
 		public string AbsoluteUri { get; private set; }
@@ -75,7 +83,8 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public NameValueCollection Headers { get; private set; }
 		public string HttpMethod { get; private set; }
-		public System.IO.Stream InputStream { get; private set; }
+		public Stream InputStream { get; private set; }
+        public bool IsLocal { get; private set; }
 		public bool IsSecureConnection { get; private set; }
 
 		public Dictionary<string, object> Items { get; private set; }
@@ -104,12 +113,27 @@ namespace ServiceStack.Owin.Infrastructure
 			set { _responseContentType = value; }
 		}
 
+        public bool UseBufferedStream
+        {
+            get { return _bufferedStream != null; }
+            set
+            {
+                _bufferedStream = value
+                    ? _bufferedStream ?? new MemoryStream(_inputStream.ReadFully())
+                        : null;
+            }
+        }
+
 		public string UserAgent
 		{
 			get { throw new NotImplementedException(); }
 		}
 
 		public string UserHostAddress { get; private set; }
+
+        public string XForwardedFor { get; private set; }
+
+        public string XRealIp { get; private set; }
 
 		public string GetRawBody()
 		{
