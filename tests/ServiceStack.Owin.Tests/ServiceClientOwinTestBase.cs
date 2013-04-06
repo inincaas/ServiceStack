@@ -11,6 +11,7 @@ namespace ServiceStack.Owin.Tests
     public abstract class ServiceClientOwinTestBase : IDisposable
     {
         private const string BaseUrl = "http://127.0.0.1:8083/";
+        private const string ListenUrl = "http://*:8083/";
         private AppHostBase _appHost;
         private IDisposable _server;
 
@@ -33,7 +34,7 @@ namespace ServiceStack.Owin.Tests
             _appHost = CreateAppHost();
             _appHost.Init();
             IServiceProvider serviceProvider = DefaultServices.Create(p => p.AddInstance<AppHostBase>(_appHost));
-            _server = WebApplication.Start<Startup>(port: 8083, services: serviceProvider);
+            _server = WebApplication.Start<Startup>(url: ListenUrl, services: serviceProvider);
         }
 
         public class Startup
