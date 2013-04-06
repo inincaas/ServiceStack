@@ -34,7 +34,15 @@
                                                                                {
                                                                                    OwinConstants.AcceptHeader,
                                                                                    new[] {"text/html"}
-                                                                               }
+                                                                               },
+                                                                               {
+                                                                                   OwinConstants.XForwardedFor,
+                                                                                   new[] {"example.com"}
+                                                                               },
+                                                                               {
+                                                                                   OwinConstants.XRealIp, 
+                                                                                   new[] {"127.0.0.1"}
+                                                                               },
                                                                            }
                                       },
                                       {OwinConstants.RequestPathBaseKey, "/pathbase"},
@@ -109,6 +117,18 @@
         public void Can_get_request_method()
         {
             Assert.AreEqual("POST", _sut.HttpMethod);
+        }
+
+        [Test]
+        public void Can_get_x_forwarded_for()
+        {
+            Assert.AreEqual("example.com", _sut.XForwardedFor);
+        }
+
+        [Test]
+        public void Can_get_x_real_ip()
+        {
+            Assert.AreEqual("127.0.0.1", _sut.XRealIp);
         }
 
         [Test]
