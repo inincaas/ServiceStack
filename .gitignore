@@ -48,3 +48,9 @@ build/
 *.DS_Store
 
 *.dotCover
+
+src/ServiceStack/Properties/Resources.resources
+
+src/ServiceStack.userprefs
+
+src/ServiceStack.userprefs

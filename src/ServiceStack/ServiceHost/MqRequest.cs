@@ -47,6 +47,11 @@ namespace ServiceStack.ServiceHost
             get { return "MQ"; }
         }
 
+        public bool IsLocal
+        {
+            get { return true; }
+        }
+
         public IDictionary<string, Cookie> Cookies
         {
             get { return requestContext.Cookies; }
@@ -80,6 +85,8 @@ namespace ServiceStack.ServiceHost
             get { return new NameValueCollection(); }
         }
 
+        public bool UseBufferedStream { get; set; }
+
         private string body;
         public string GetRawBody()
         {
@@ -105,6 +112,17 @@ namespace ServiceStack.ServiceHost
         {
             get { return null; }
         }
+
+        public string XForwardedFor
+        {
+            get { return null; }
+        }
+
+        public string XRealIp 
+        {
+            get { return null; }
+        }
+
 
         public bool IsSecureConnection
         {

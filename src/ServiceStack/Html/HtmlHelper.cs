@@ -51,9 +51,8 @@ namespace ServiceStack.Html
 		{
 			get 
             { 
-                return viewData ?? 
-                    (viewData = base.ViewData as ViewDataDictionary<TModel> 
-                        ?? new ViewDataDictionary<TModel>((TModel)base.ViewData.Model)); 
+                return base.ViewData as ViewDataDictionary<TModel> 
+                    ?? new ViewDataDictionary<TModel>((TModel)base.ViewData.Model); 
             }
 		}
 	}
@@ -86,6 +85,7 @@ namespace ServiceStack.Html
 		public bool RenderHtml { get; protected set; }
 
         public IHttpRequest HttpRequest { get; set; }
+        public IHttpResponse HttpResponse { get; set; }
         public IViewEngine ViewEngine { get; set; }
 
 	    public MarkdownPage MarkdownPage { get; protected set; }
@@ -107,6 +107,7 @@ namespace ServiceStack.Html
             if (htmlHelper == null) return;
 
             HttpRequest = htmlHelper.HttpRequest;
+            HttpResponse = htmlHelper.HttpResponse;
             ScopeArgs = htmlHelper.ScopeArgs;
             viewData = htmlHelper.ViewData;
         }
@@ -123,17 +124,18 @@ namespace ServiceStack.Html
         public void Init(MarkdownPage markdownPage, Dictionary<string, object> scopeArgs,
             bool renderHtml, ViewDataDictionary viewData, HtmlHelper htmlHelper)
 		{
-            Init(null, markdownPage.Markdown, viewData, htmlHelper);
+            Init(null, null, markdownPage.Markdown, viewData, htmlHelper);
 
             this.RenderHtml = renderHtml;
 			this.MarkdownPage = markdownPage;
 			this.ScopeArgs = scopeArgs;
 		}
 
-		public void Init(IHttpRequest httpReq, IViewEngine viewEngine, ViewDataDictionary viewData, HtmlHelper htmlHelper)
+        public void Init(IHttpRequest httpReq, IHttpResponse httpRes, IViewEngine viewEngine, ViewDataDictionary viewData, HtmlHelper htmlHelper)
 		{
             this.RenderHtml = true;
             this.HttpRequest = httpReq ?? (htmlHelper != null ? htmlHelper.HttpRequest : null);
+            this.HttpResponse = httpRes ?? (htmlHelper != null ? htmlHelper.HttpResponse : null);
             this.ViewEngine = viewEngine;
 			this.ViewData = viewData;
 			this.ViewData.PopulateModelState();
@@ -146,9 +148,18 @@ namespace ServiceStack.Html
 		
 		public MvcHtmlString Partial(string viewName, object model)
 		{
-			var result = ViewEngine.RenderPartial(viewName, model, this.RenderHtml, this);
-			return MvcHtmlString.Create(result);
-		}
+		    var masterModel = this.viewData;
+            try
+            {
+                this.viewData = new ViewDataDictionary(model);
+                var result = ViewEngine.RenderPartial(viewName, model, this.RenderHtml, this);
+                return MvcHtmlString.Create(result);
+            }
+            finally
+            {
+                this.viewData = masterModel;
+            }
+        }
 
         public string Debug(object model)
         {
@@ -160,11 +171,11 @@ namespace ServiceStack.Html
             return null;
         }
 
-		public string Raw(object content)
+        public MvcHtmlString Raw(object content)
 		{
 			if (content == null) return null;
 			var strContent = content as string;
-			return strContent ?? content.ToString(); //MvcHtmlString
+            return MvcHtmlString.Create(strContent ?? content.ToString()); //MvcHtmlString
 		}
 
 		public static RouteValueDictionary AnonymousObjectToHtmlAttributes(object htmlAttributes)

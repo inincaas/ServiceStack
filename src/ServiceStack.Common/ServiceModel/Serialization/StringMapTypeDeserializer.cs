@@ -7,6 +7,7 @@ using ServiceStack.Logging;
 using ServiceStack.Text;
 using ServiceStack.Text.Common;
 using ServiceStack.Text.Jsv;
+using System.Linq;
 
 namespace ServiceStack.ServiceModel.Serialization
 {
@@ -32,7 +33,7 @@ namespace ServiceStack.ServiceModel.Serialization
 
         private readonly Type type;
         private readonly Dictionary<string, PropertySerializerEntry> propertySetterMap
-            = new Dictionary<string, PropertySerializerEntry>(StringComparer.InvariantCultureIgnoreCase);
+            = new Dictionary<string, PropertySerializerEntry>(Text.StringExtensions.InvariantComparerIgnoreCase());
 
         public StringMapTypeDeserializer(Type type)
         {
@@ -52,6 +53,20 @@ namespace ServiceStack.ServiceModel.Serialization
                 }
                 propertySetterMap[propertyInfo.Name] = propertySerializer;
             }
+
+	        if (JsConfig.IncludePublicFields)
+	        {
+		        foreach (var fieldInfo in type.GetSerializableFields())
+		        {
+			        var fieldSetFn = JsvDeserializeType.GetSetFieldMethod(type, fieldInfo);
+			        var fieldType = fieldInfo.FieldType;
+			        var fieldParseStringFn = JsvReader.GetParseFn(fieldType);
+			        var fieldSerializer = new PropertySerializerEntry(fieldSetFn, fieldParseStringFn) {PropertyType = fieldType};
+
+			        propertySetterMap[fieldInfo.Name] = fieldSerializer;
+		        }
+	        }
+
         }
 
         public object PopulateFromMap(object instance, IDictionary<string, string> keyValuePairs)
@@ -64,7 +79,7 @@ namespace ServiceStack.ServiceModel.Serialization
             {
                 if (instance == null) instance = type.CreateInstance();
 
-                foreach (var pair in keyValuePairs)
+                foreach (var pair in keyValuePairs.Where(x => !string.IsNullOrEmpty(x.Value)))
                 {
                     propertyName = pair.Key;
                     propertyTextValue = pair.Value;

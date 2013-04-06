@@ -18,6 +18,7 @@ using ServiceStack.ServiceInterface.ServiceModel;
 using ServiceStack.Text;
 using ServiceStack.WebHost.Endpoints.Tests.Support.Services;
 using ServiceStack.WebHost.IntegrationTests.Services;
+using System.Collections.Generic;
 
 namespace ServiceStack.WebHost.Endpoints.Tests
 {
@@ -89,19 +90,74 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 		}
 	}
 
+    public class RequiresPermission
+    {
+        public string Name { get; set; }
+    }
+
+    public class RequiresPermissionResponse
+    {
+        public string Result { get; set; }
+
+        public ResponseStatus ResponseStatus { get; set; }
+    }
+
+    [RequiredPermission("ThePermission")]
+    public class RequiresPermissionService : ServiceInterface.Service
+    {
+        public RequiresPermissionResponse Any(RequiresPermission request)
+        {
+            return new RequiresPermissionResponse { Result = request.Name };
+        }
+    }
+
 	public class CustomUserSession : AuthUserSession
 	{
 		public override void OnAuthenticated(IServiceBase authService, IAuthSession session, IOAuthTokens tokens, System.Collections.Generic.Dictionary<string, string> authInfo)
 		{
-			if (!session.Roles.Contains("TheRole"))
-				session.Roles.Add("TheRole");
-
             if (session.UserName == AuthTests.UserNameWithSessionRedirect)
                 session.ReferrerUrl = AuthTests.SessionRedirectUrl;
-
-			authService.RequestContext.Get<IHttpRequest>().SaveSession(session);
 		}
 	}
+
+    public class CustomAuthProvider : AuthProvider
+    {
+        public CustomAuthProvider()
+        {
+            this.Provider = "custom";
+        }
+
+        public override bool IsAuthorized(IAuthSession session, IOAuthTokens tokens, Auth request = null)
+        {
+            return false;
+        }
+
+        public override object Authenticate(IServiceBase authService, IAuthSession session, Auth request)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class RequiresCustomAuth
+    {
+        public string Name { get; set; }
+    }
+
+    public class RequiresCustomAuthResponse
+    {
+        public string Result { get; set; }
+
+        public ResponseStatus ResponseStatus { get; set; }
+    }
+
+    [Authenticate(Provider="custom")]
+    public class RequiresCustomAuthService : ServiceInterface.Service
+    {
+        public RequiresCustomAuthResponse Any(RequiresCustomAuth request)
+        {
+            return new RequiresCustomAuthResponse { Result = request.Name };
+        }
+    }
 
 	public class AuthTests
 	{
@@ -126,21 +182,22 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 			public override void Configure(Container container)
 			{
 				Plugins.Add(new AuthFeature(() => new CustomUserSession(),
-					new AuthProvider[] {
+					new AuthProvider[] { //Www-Authenticate should contain basic auth, therefore register this provider first
+                        new BasicAuthProvider(), //Sign-in with Basic Auth
 						new CredentialsAuthProvider(), //HTML Form post of UserName/Password credentials
-						new BasicAuthProvider(), //Sign-in with Basic Auth
+                        new CustomAuthProvider()
 					}));
 
 				container.Register<ICacheClient>(new MemoryCacheClient());
 				userRep = new InMemoryAuthRepository();
 				container.Register<IUserAuthRepository>(userRep);
 
-                CreateUser( 1, UserName, null, Password);
+                CreateUser( 1, UserName, null, Password, new List<string> { "TheRole" }, new List<string> { "ThePermission" });
                 CreateUser( 2, UserNameWithSessionRedirect, null, PasswordForSessionRedirect);
                 CreateUser( 3, null, EmailBasedUsername, PasswordForEmailBasedAccount);
 			}
 
-		    private void CreateUser(int id, string username, string email, string password)
+		    private void CreateUser(int id, string username, string email, string password, List<string> roles = null, List<string> permissions = null)
 		    {
                 string hash;
                 string salt;
@@ -156,6 +213,8 @@ namespace ServiceStack.WebHost.Endpoints.Tests
                     LastName = "LastName",
                     PasswordHash = hash,
                     Salt = salt,
+                    Roles = roles,
+                    Permissions = permissions
                 }, password);
 		    }
 		}
@@ -216,6 +275,32 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 				Console.WriteLine(webEx.ResponseDto.Dump());
 			}
 		}
+
+        [Test]
+        public void Authenticate_attribute_respects_provider()
+        {
+            try
+            {
+                var client = GetClient();
+                var authResponse = client.Send(new Auth
+                {
+                    provider = CredentialsAuthProvider.Name,
+                    UserName = "user",
+                    Password = "p@55word",
+                    RememberMe = true,
+                });
+
+                var request = new RequiresCustomAuth { Name = "test" };
+                var response = client.Send<RequiresCustomAuthResponse>(request);
+
+                Assert.Fail("Shouldn't be allowed");
+            }
+            catch (WebServiceException webEx)
+            {
+                Assert.That(webEx.StatusCode, Is.EqualTo((int)HttpStatusCode.Unauthorized));
+                Console.WriteLine(webEx.ResponseDto.Dump());
+            }
+        }
 
         [Test]
         public void PostFile_with_no_Credentials_throws_UnAuthorized()
@@ -314,14 +399,14 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 			{
 				var client = GetClient();
 
-				var authResponse = client.Send<AuthResponse>(new Auth {
+				var authResponse = client.Send(new Auth {
 					provider = CredentialsAuthProvider.Name,
 					UserName = "user",
 					Password = "p@55word",
 					RememberMe = true,
 				});
 
-				Console.WriteLine(authResponse.Dump());
+			    authResponse.PrintDump();
 
 				var request = new Secured { Name = "test" };
 				var response = client.Send<SecureResponse>(request);
@@ -347,7 +432,7 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 				Password = "p@55word",
 				RememberMe = true,
 			}, authResponse => {
-				Console.WriteLine(authResponse.Dump());
+                authResponse.PrintDump();
 				client.SendAsync<SecureResponse>(request, r => response = r, FailOnAsyncError);
 
 			}, FailOnAsyncError);
@@ -371,7 +456,96 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 				Assert.Fail(webEx.Message);
 			}
 		}
-		
+
+        [Test]
+        public void RequiredRole_service_returns_unauthorized_if_no_basic_auth_header_exists()
+        {
+            try
+            {
+                var client = GetClient();
+                var request = new RequiresRole { Name = "test" };
+                var response = client.Send<RequiresRoleResponse>(request);
+                Assert.Fail();
+            }
+            catch (WebServiceException webEx)
+            {
+                Assert.That(webEx.StatusCode, Is.EqualTo((int)HttpStatusCode.Unauthorized));
+                Console.WriteLine(webEx.ResponseDto.Dump());
+            }
+        }
+
+        [Test]
+        public void RequiredRole_service_returns_forbidden_if_basic_auth_header_exists()
+        {
+            try
+            {
+                var client = GetClient();
+                ((ServiceClientBase)client).UserName = EmailBasedUsername;
+                ((ServiceClientBase)client).Password = PasswordForEmailBasedAccount;
+
+                var request = new RequiresRole { Name = "test" };
+                var response = client.Send<RequiresRoleResponse>(request);
+                Assert.Fail();
+            }
+            catch (WebServiceException webEx)
+            {
+                Assert.That(webEx.StatusCode, Is.EqualTo((int)HttpStatusCode.Forbidden));
+                Console.WriteLine(webEx.ResponseDto.Dump());
+            }
+        }
+
+        [Test]
+        public void Can_call_RequiredPermission_service_with_BasicAuth()
+        {
+            try
+            {
+                var client = GetClientWithUserPassword();
+                var request = new RequiresPermission { Name = "test" };
+                var response = client.Send<RequiresPermissionResponse>(request);
+                Assert.That(response.Result, Is.EqualTo(request.Name));
+            }
+            catch (WebServiceException webEx)
+            {
+                Assert.Fail(webEx.Message);
+            }
+        }
+
+        [Test]
+        public void RequiredPermission_service_returns_unauthorized_if_no_basic_auth_header_exists()
+        {
+            try
+            {
+                var client = GetClient();
+                var request = new RequiresPermission { Name = "test" };
+                var response = client.Send<RequiresPermissionResponse>(request);
+                Assert.Fail();
+            }
+            catch (WebServiceException webEx)
+            {
+                Assert.That(webEx.StatusCode, Is.EqualTo((int)HttpStatusCode.Unauthorized));
+                Console.WriteLine(webEx.ResponseDto.Dump());
+            }
+        }
+
+        [Test]
+        public void RequiredPermission_service_returns_forbidden_if_basic_auth_header_exists()
+        {
+            try
+            {
+                var client = GetClient();
+                ((ServiceClientBase)client).UserName = EmailBasedUsername;
+                ((ServiceClientBase)client).Password = PasswordForEmailBasedAccount;
+
+                var request = new RequiresPermission { Name = "test" };
+                var response = client.Send<RequiresPermissionResponse>(request);
+                Assert.Fail();
+            }
+            catch (WebServiceException webEx)
+            {
+                Assert.That(webEx.StatusCode, Is.EqualTo((int)HttpStatusCode.Forbidden));
+                Console.WriteLine(webEx.ResponseDto.Dump());
+            }
+        }
 		
 		[Test]
 		public void Does_work_with_CredentailsAuth_Multiple_Times()
@@ -508,6 +682,7 @@ namespace ServiceStack.WebHost.Endpoints.Tests
             var initialLoginResponse = client.Send(authRequest);
             var alreadyLogggedInResponse = client.Send(authRequest);
 
+            Assert.That(initialLoginResponse.UserName, Is.EqualTo(EmailBasedUsername));
             Assert.That(alreadyLogggedInResponse.UserName, Is.EqualTo(EmailBasedUsername));
         }
 	}

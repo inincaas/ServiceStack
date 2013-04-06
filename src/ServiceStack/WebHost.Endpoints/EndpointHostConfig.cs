@@ -33,6 +33,11 @@ namespace ServiceStack.WebHost.Endpoints
         public static readonly string LicensePublicKey = "<RSAKeyValue><Modulus>19kx2dJoOIrMYypMTf8ssiCALJ7RS/Iz2QG0rJtYJ2X0+GI+NrgOCapkh/9aDVBieobdClnuBgW08C5QkfBdLRqsptiSu50YIqzVaNBMwZPT0e7Ke02L/fV/M/fVPsolHwzMstKhdWGdK8eNLF4SsLEcvnb79cx3/GnZbXku/ro5eOrTseKL3s4nM4SdMRNn7rEAU0o0Ijb3/RQbhab8IIRB4pHwk1mB+j/mcAQAtMerwpHfwpEBLWlQyVpu0kyKJCEkQjbaPzvfglDRpyBOT5GMUnrcTT/sBr5kSJYpYrgHnA5n4xJnvrnyFqdzXwgGFlikRTbc60pk1cQEWcHgYw==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
 
         public static bool SkipPathValidation = false;
+        /// <summary>
+        /// Use: \[Route\("[^\/]  regular expression to find violating routes in your sln
+        /// </summary>
+        public static bool SkipRouteValidation = false;
+
         public static string ServiceStackPath = null;
 
         private static EndpointHostConfig instance;
@@ -74,7 +79,7 @@ namespace ServiceStack.WebHost.Endpoints
                         AllowFileExtensions = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
 						{
 							"js", "css", "htm", "html", "shtm", "txt", "xml", "rss", "csv", 
-							"jpg", "jpeg", "gif", "png", "bmp", "ico", "tif", "tiff", 
+							"jpg", "jpeg", "gif", "png", "bmp", "ico", "tif", "tiff", "svg", 
 							"avi", "divx", "m3u", "mov", "mp3", "mpeg", "mpg", "qt", "vob", "wav", "wma", "wmv", 
 							"flv", "xap", "xaml", 
 						},
@@ -82,6 +87,7 @@ namespace ServiceStack.WebHost.Endpoints
                         DebugHttpListenerHostEnvironment = Env.IsMono ? "XSP" : "WebServer20",
                         EnableFeatures = Feature.All,
                         WriteErrorsToResponse = true,
+                        ReturnsInnerException = true,
                         MarkdownOptions = new MarkdownOptions(),
                         MarkdownBaseType = typeof(MarkdownViewBase),
                         MarkdownGlobalHelpers = new Dictionary<string, Type>(),
@@ -96,6 +102,8 @@ namespace ServiceStack.WebHost.Endpoints
                         CustomHttpHandlers = new Dictionary<HttpStatusCode, IServiceStackHttpHandler>(),
                         GlobalHtmlErrorHttpHandler = null,
                         MapExceptionToStatusCode = new Dictionary<Type, int>(),
+                        OnlySendSessionCookiesSecurely = false,
+                        RestrictAllCookiesToDomain = null,
                         DefaultJsonpCacheExpiration = new TimeSpan(0, 20, 0),
                         MetadataVisibility = EndpointAttributes.Any,
                         Return204NoContentForEmptyResponse = true,
@@ -145,6 +153,7 @@ namespace ServiceStack.WebHost.Endpoints
             this.AllowFileExtensions = instance.AllowFileExtensions;
             this.EnableFeatures = instance.EnableFeatures;
             this.WriteErrorsToResponse = instance.WriteErrorsToResponse;
+            this.ReturnsInnerException = instance.ReturnsInnerException;
             this.MarkdownOptions = instance.MarkdownOptions;
             this.MarkdownBaseType = instance.MarkdownBaseType;
             this.MarkdownGlobalHelpers = instance.MarkdownGlobalHelpers;
@@ -155,6 +164,8 @@ namespace ServiceStack.WebHost.Endpoints
             this.CustomHttpHandlers = instance.CustomHttpHandlers;
             this.GlobalHtmlErrorHttpHandler = instance.GlobalHtmlErrorHttpHandler;
             this.MapExceptionToStatusCode = instance.MapExceptionToStatusCode;
+            this.OnlySendSessionCookiesSecurely = instance.OnlySendSessionCookiesSecurely;
+            this.RestrictAllCookiesToDomain = instance.RestrictAllCookiesToDomain;
             this.DefaultJsonpCacheExpiration = instance.DefaultJsonpCacheExpiration;
             this.MetadataVisibility = instance.MetadataVisibility;
             this.Return204NoContentForEmptyResponse = Return204NoContentForEmptyResponse;
@@ -326,7 +337,7 @@ namespace ServiceStack.WebHost.Endpoints
         {
             return XDocument.Parse(rawXml).Root.Element("handlers")
                 .Descendants("add")
-                .Where(handler => EndpointHostConfig.EnsureHandlerTypeAttribute(handler).StartsWith("ServiceStack"))
+                .Where(handler => EnsureHandlerTypeAttribute(handler).StartsWith("ServiceStack"))
                 .Select(handler => handler.Attribute("path").Value)
                 .FirstOrDefault();
         }
@@ -382,6 +393,7 @@ namespace ServiceStack.WebHost.Endpoints
         public bool UseBclJsonSerializers { get; set; }
         public Dictionary<string, string> GlobalResponseHeaders { get; set; }
         public Feature EnableFeatures { get; set; }
+        public bool ReturnsInnerException { get; set; }
         public bool WriteErrorsToResponse { get; set; }
 
         public MarkdownOptions MarkdownOptions { get; set; }
@@ -398,6 +410,9 @@ namespace ServiceStack.WebHost.Endpoints
         public Dictionary<HttpStatusCode, IServiceStackHttpHandler> CustomHttpHandlers { get; set; }
         public IServiceStackHttpHandler GlobalHtmlErrorHttpHandler { get; set; }
         public Dictionary<Type, int> MapExceptionToStatusCode { get; set; }
+
+        public bool OnlySendSessionCookiesSecurely { get; set; }
+        public string RestrictAllCookiesToDomain { get; set; }
 
         public TimeSpan DefaultJsonpCacheExpiration { get; set; }
         public bool Return204NoContentForEmptyResponse { get; set; }
@@ -563,6 +578,6 @@ namespace ServiceStack.WebHost.Endpoints
             var httpHandler = ssHandler as IHttpHandler;
             return httpHandler ?? new ServiceStackHttpHandler(ssHandler);
         }
-    }
+	}
 
 }

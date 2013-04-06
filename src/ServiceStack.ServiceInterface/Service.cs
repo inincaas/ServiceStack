@@ -16,22 +16,30 @@ namespace ServiceStack.ServiceInterface
     {
         public IRequestContext RequestContext { get; set; }
 
-        private IAppHost appHost;
-        public virtual IAppHost GetAppHost()
+        private IResolver resolver;
+        public virtual IResolver GetResolver()
         {
-            return appHost ?? EndpointHost.AppHost;
+            return resolver ?? EndpointHost.AppHost;
         }
 
-        public virtual void SetAppHost(IAppHost appHost)
+        public virtual Service SetResolver(IResolver resolver)
         {
-            this.appHost = appHost;
+            this.resolver = resolver;
+            return this;
+        }
+
+        [Obsolete("Use SetResolver")]
+        public virtual Service SetAppHost(IAppHost appHost)
+        {
+            this.resolver = appHost;
+            return this;
         }
 
         public virtual T TryResolve<T>()
         {
-            return this.GetAppHost() == null
+            return this.GetResolver() == null
                 ? default(T)
-                : this.GetAppHost().TryResolve<T>();
+                : this.GetResolver().TryResolve<T>();
         }
 
         public virtual T ResolveService<T>()
@@ -48,13 +56,13 @@ namespace ServiceStack.ServiceInterface
         private IHttpRequest request;
         protected virtual IHttpRequest Request
         {
-            get { return request ?? (request = RequestContext.Get<IHttpRequest>()); }
+            get { return request ?? (request = RequestContext != null ? RequestContext.Get<IHttpRequest>() : TryResolve<IHttpRequest>()); }
         }
 
         private IHttpResponse response;
         protected virtual IHttpResponse Response
         {
-            get { return response ?? (response = RequestContext.Get<IHttpResponse>()); }
+            get { return response ?? (response = RequestContext != null ? RequestContext.Get<IHttpResponse>() : TryResolve<IHttpResponse>()); }
         }
 
         private ICacheClient cache;
@@ -95,7 +103,8 @@ namespace ServiceStack.ServiceInterface
         {
             get
             {
-                return session ?? (session = SessionFactory.GetOrCreateSession(Request, Response));
+                return session ?? (session = TryResolve<ISession>() //Easier to mock
+                    ?? SessionFactory.GetOrCreateSession(Request, Response));
             }
         }
 
@@ -105,7 +114,13 @@ namespace ServiceStack.ServiceInterface
         private object userSession;
         protected virtual TUserSession SessionAs<TUserSession>()
         {
-            return (TUserSession)(userSession ?? (userSession = Cache.SessionAs<TUserSession>(Request, Response)));
+            if (userSession == null)
+            {
+                userSession = TryResolve<TUserSession>(); //Easier to mock
+                if (userSession == null)
+                    userSession = Cache.SessionAs<TUserSession>(Request, Response);
+            }
+            return (TUserSession)userSession;
         }
 
         public virtual void PublishMessage<T>(T message)
@@ -119,8 +134,6 @@ namespace ServiceStack.ServiceInterface
 
         public virtual void Dispose()
         {
-            if (cache != null)
-                cache.Dispose();
             if (db != null)
                 db.Dispose();
             if (redis != null)

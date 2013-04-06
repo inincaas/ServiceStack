@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using ServiceStack.Common;
 using ServiceStack.Html;
+using ServiceStack.IO;
 using ServiceStack.Logging;
 using ServiceStack.Razor.Templating;
 using ServiceStack.ServiceHost;
@@ -115,7 +116,7 @@ namespace ServiceStack.Razor
 				{"rzr", typeof(ViewPage<>) },
 			};
             this.TemplateProvider = new TemplateProvider(DefaultTemplateName) {
-                CompileInParallelWithNoOfThreads = 0,
+                CompileInParallelWithNoOfThreads = null,
             };
             //Skip scanning common VS.NET extensions
             this.SkipPaths = new List<string> {
@@ -143,7 +144,7 @@ namespace ServiceStack.Razor
                 WatchForModifiedPages = appHost.Config.DebugMode;
 
             //Default to parallel execution in DebugMode
-            if (this.TemplateProvider.CompileInParallelWithNoOfThreads <= 0)
+            if (!this.TemplateProvider.CompileInParallelWithNoOfThreads.HasValue)
                 this.TemplateProvider.CompileInParallelWithNoOfThreads = appHost.Config.DebugMode
                     ? Environment.ProcessorCount * 2
                     : 0;

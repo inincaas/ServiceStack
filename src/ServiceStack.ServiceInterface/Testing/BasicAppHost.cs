@@ -4,13 +4,14 @@ using System.Linq;
 using System.Reflection;
 using Funq;
 using ServiceStack.Html;
+using ServiceStack.IO;
 using ServiceStack.VirtualPath;
 using ServiceStack.ServiceHost;
 using ServiceStack.WebHost.Endpoints;
 
 namespace ServiceStack.ServiceInterface.Testing
 {
-    public class BasicAppHost : IAppHost
+    public class BasicAppHost : IAppHost, IHasContainer
     {
         public BasicAppHost()
         {

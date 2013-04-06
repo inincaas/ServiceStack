@@ -63,7 +63,7 @@ namespace ServiceStack.WebHost.IntegrationTests
                 this.Container.Register<IDbConnectionFactory>(c =>
                     new OrmLiteConnectionFactory(
                         "~/App_Data/db.sqlite".MapHostAbsolutePath(),
-                        SqliteOrmLiteDialectProvider.Instance) {
+                        SqliteDialect.Provider) {
                             ConnectionFilter = x => new ProfiledDbConnection(x, Profiler.Current)
                         });
 
@@ -138,6 +138,7 @@ namespace ServiceStack.WebHost.IntegrationTests
 						new FacebookAuthProvider(appSettings), 
 						new TwitterAuthProvider(appSettings), 
                         new GoogleOpenIdOAuthProvider(appSettings), 
+                        new OpenIdOAuthProvider(appSettings), 
                         new DigestAuthProvider(appSettings),
 						new BasicAuthProvider(appSettings), 
 					}));

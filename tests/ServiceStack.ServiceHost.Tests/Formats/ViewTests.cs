@@ -8,6 +8,7 @@ using NUnit.Framework;
 using ServiceStack.Common.Utils;
 using ServiceStack.Common.Web;
 using ServiceStack.Html;
+using ServiceStack.IO;
 using ServiceStack.ServiceHost.Tests.AppData;
 using ServiceStack.ServiceInterface.Testing;
 using ServiceStack.Text;
@@ -46,7 +47,7 @@ namespace ServiceStack.ServiceHost.Tests.Formats
 		{
 			public AppHost()
 			{
-				this.Config = new EndpointHostConfig {					
+				this.Config = new EndpointHostConfig {
 					HtmlReplaceTokens = new Dictionary<string, string>(),
 					IgnoreFormatsInMetadata = new HashSet<string>(),
 				};

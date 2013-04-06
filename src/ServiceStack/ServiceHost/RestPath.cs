@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using ServiceStack.Common;
 using ServiceStack.ServiceModel.Serialization;
 using ServiceStack.Text;
 
@@ -11,6 +12,7 @@ namespace ServiceStack.ServiceHost
 	public class RestPath
 		: IRestPath
 	{
+	    private const string IgnoreParam = "ignore";
 		private const string WildCard = "*";
 		private const char WildCardChar = '*';
 		private const string PathSeperator = "/";
@@ -190,6 +192,14 @@ namespace ServiceStack.ServiceHost
 					propertyName = propertyInfo.Name;
 					propertyNamesMap.Add(propertyName.ToLower(), propertyName);
 				}
+				if (JsConfig.IncludePublicFields)
+				{
+					foreach (var fieldInfo in this.RequestType.GetSerializableFields())
+					{
+						propertyName = fieldInfo.Name;
+						propertyNamesMap.Add(propertyName.ToLower(), propertyName);
+					}
+				}
 			}
 			catch (Exception)
 			{
@@ -289,7 +299,7 @@ namespace ServiceStack.ServiceHost
 			if (requestComponents.Length != this.TotalComponentsCount)
 			{
 				var isValidWildCardPath = this.isWildCardPath
-					&& requestComponents.Length >= this.TotalComponentsCount;
+					&& requestComponents.Length >= this.TotalComponentsCount - 1;
 
 				if (!isValidWildCardPath)
 					throw new ArgumentException(string.Format(
@@ -306,6 +316,9 @@ namespace ServiceStack.ServiceHost
 				string propertyNameOnRequest;
 				if (!this.propertyNamesMap.TryGetValue(variableName.ToLower(), out propertyNameOnRequest))
 				{
+                    if (IgnoreParam.EqualsIgnoreCase(variableName))
+                        continue;
+
 					throw new ArgumentException("Could not find property "
 						+ variableName + " on " + RequestType.Name);
 				}

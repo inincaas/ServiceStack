@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Linq;
 #if !(MONOTOUCH || SILVERLIGHT)
 using System.Text;
 using System.Web;
@@ -35,6 +38,8 @@ namespace ServiceStack.ServiceClient.Web
 
         private string replyPath = "/syncreply/";
         private string oneWayPath = "/asynconeway/";
+
+		private AuthenticationInfo authInfo = null;
 
         public bool UseNewPredefinedRoutes
         {
@@ -85,6 +90,15 @@ namespace ServiceStack.ServiceClient.Web
             }
         }
 
+        /// <summary>
+        /// Gets the collection of headers to be added to outgoing requests.
+        /// </summary>
+#if NETFX_CORE || WINDOWS_PHONE
+        public Dictionary<string, string> Headers { get; private set; } 
+#else
+        public NameValueCollection Headers { get; private set; }
+#endif
+
         public const string DefaultHttpMethod = "POST";
 
         readonly AsyncServiceClient asyncClient;
@@ -104,6 +118,11 @@ namespace ServiceStack.ServiceClient.Web
                 LocalHttpWebResponseFilter = this.LocalHttpWebResponseFilter
             };
             this.StoreCookies = true; //leave
+#if NETFX_CORE || WINDOWS_PHONE
+            this.Headers = new Dictionary<string, string>();
+#else
+            this.Headers = new NameValueCollection();
+#endif
 
 #if SILVERLIGHT
             asyncClient.HandleCallbackOnUIThread = this.HandleCallbackOnUIThread = true;
@@ -215,6 +234,18 @@ namespace ServiceStack.ServiceClient.Web
                 this.asyncClient.Timeout = value;
             }
         }
+        
+        private TimeSpan? readWriteTimeout;
+    	public TimeSpan? ReadWriteTimeout
+		{
+			get { return this.readWriteTimeout; }
+			set
+			{
+				this.readWriteTimeout = value;
+                // TODO implement ReadWriteTimeout in asyncClient
+				//this.asyncClient.ReadWriteTimeout = value;
+			}
+		}
 
         public virtual string Accept
         {
@@ -273,8 +304,12 @@ namespace ServiceStack.ServiceClient.Web
         /// Determines if the basic auth header should be sent with every request.
         /// By default, the basic auth header is only sent when "401 Unauthorized" is returned.
         /// </summary>
-        public bool AlwaysSendBasicAuthHeader { get; set; }
-
+        private bool alwaysSendBasicAuthHeader;
+        public bool AlwaysSendBasicAuthHeader
+        {
+            get { return alwaysSendBasicAuthHeader; }
+            set { asyncClient.AlwaysSendBasicAuthHeader = alwaysSendBasicAuthHeader = value; }
+        }
 
         /// <summary>
         /// Specifies if cookies should be stored
@@ -385,8 +420,8 @@ namespace ServiceStack.ServiceClient.Web
             {
                 TResponse response;
 
-                if (!HandleResponseException(ex, 
-                    request, 
+                if (!HandleResponseException(ex,
+                    request,
                     requestUri,
                     () => SendRequest(HttpMethods.Post, requestUri, request),
                     c => c.GetResponse(),
@@ -399,15 +434,44 @@ namespace ServiceStack.ServiceClient.Web
             }
         }
 
-        private bool HandleResponseException<TResponse>(Exception ex, object request, string requestUri, 
+        /// <summary>
+        /// Called by Send method if an exception occurs, for instance a System.Net.WebException because the server
+        /// returned an HTTP error code. Override if you want to handle specific exceptions or always want to parse the
+        /// response to a custom ErrorResponse DTO type instead of ServiceStack's ErrorResponse class. In case ex is a
+        /// <c>System.Net.WebException</c>, do not use
+        /// <c>createWebRequest</c>/<c>getResponse</c>/<c>HandleResponse&lt;TResponse&gt;</c> to parse the response
+        /// because that will result in the same exception again. Use
+        /// <c>ThrowWebServiceException&lt;YourErrorResponseType&gt;</c> to parse the response and to throw a
+        /// <c>WebServiceException</c> containing the parsed DTO. Then override Send to handle that exception.
+        /// </summary>
+        protected virtual bool HandleResponseException<TResponse>(Exception ex, object request, string requestUri,
             Func<WebRequest> createWebRequest, Func<WebRequest, WebResponse> getResponse, out TResponse response)
         {
             try
             {
                 if (WebRequestUtils.ShouldAuthenticate(ex, this.UserName, this.Password))
                 {
-                    var client = createWebRequest();
-                    client.AddBasicAuth(this.UserName, this.Password);
+					// adamfowleruk : Check response object to see what type of auth header to add
+					
+					var client = createWebRequest();
+
+					var webEx = ex as WebException;
+					if (webEx != null && webEx.Response != null) {
+						WebHeaderCollection headers = ((HttpWebResponse) webEx.Response).Headers;
+						var doAuthHeader = headers[ServiceStack.Common.Web.HttpHeaders.WwwAuthenticate];
+						// check value of WWW-Authenticate header
+            if (doAuthHeader == null)
+            {
+              client.AddBasicAuth(this.UserName, this.Password);
+            }
+            else
+            {
+              this.authInfo = new ServiceStack.ServiceClient.Web.AuthenticationInfo(doAuthHeader);
+              client.AddAuthInfo(this.UserName, this.Password, authInfo);
+            }
+					}
+
+
                     if (OnAuthenticationRequired != null)
                     {
                         OnAuthenticationRequired(client);
@@ -439,7 +503,7 @@ namespace ServiceStack.ServiceClient.Web
             return false;
         }
 
-        readonly ConcurrentDictionary<Type,Action<Exception,string>> ResponseHandlers
+        readonly ConcurrentDictionary<Type, Action<Exception, string>> ResponseHandlers
             = new ConcurrentDictionary<Type, Action<Exception, string>>();
 
         private void ThrowResponseTypeException<TResponse>(object request, Exception ex, string requestUri)
@@ -454,7 +518,7 @@ namespace ServiceStack.ServiceClient.Web
             Action<Exception, string> responseHandler;
             if (!ResponseHandlers.TryGetValue(responseType, out responseHandler))
             {
-                var mi = GetType().GetMethod("ThrowWebServiceException", 
+                var mi = GetType().GetMethod("ThrowWebServiceException",
                         BindingFlags.Instance | BindingFlags.NonPublic)
                     .MakeGenericMethod(new[] { responseType });
 
@@ -466,7 +530,7 @@ namespace ServiceStack.ServiceClient.Web
             responseHandler(ex, requestUri);
         }
 
-        internal void ThrowWebServiceException<TResponse>(Exception ex, string requestUri)
+        protected internal void ThrowWebServiceException<TResponse>(Exception ex, string requestUri)
         {
             var webEx = ex as WebException;
             if (webEx != null && webEx.Status == WebExceptionStatus.ProtocolError)
@@ -538,7 +602,9 @@ namespace ServiceStack.ServiceClient.Web
             if (httpMethod == null)
                 throw new ArgumentNullException("httpMethod");
 
-            if (httpMethod == HttpMethods.Get && request != null)
+            var httpMethodGetOrHead = httpMethod == HttpMethods.Get || httpMethod == HttpMethods.Head;
+
+            if (httpMethodGetOrHead && request != null)
             {
                 var queryString = QueryStringSerializer.SerializeToString(request);
                 if (!string.IsNullOrEmpty(queryString))
@@ -548,15 +614,23 @@ namespace ServiceStack.ServiceClient.Web
             }
 
             var client = (HttpWebRequest)WebRequest.Create(requestUri);
+
             try
             {
                 client.Accept = Accept;
                 client.Method = httpMethod;
+                client.Headers.Add(Headers);
 
                 if (Proxy != null) client.Proxy = Proxy;
                 if (this.Timeout.HasValue) client.Timeout = (int)this.Timeout.Value.TotalMilliseconds;
+                if (this.ReadWriteTimeout.HasValue) client.ReadWriteTimeout = (int)this.ReadWriteTimeout.Value.TotalMilliseconds;
                 if (this.credentials != null) client.Credentials = this.credentials;
-                if (this.AlwaysSendBasicAuthHeader) client.AddBasicAuth(this.UserName, this.Password);
+
+				if (null != this.authInfo) {
+					client.AddAuthInfo(this.UserName,this.Password,authInfo);
+				} else {
+					if (this.AlwaysSendBasicAuthHeader) client.AddBasicAuth(this.UserName, this.Password);
+				}
 
                 if (!DisableAutoCompression)
                 {
@@ -574,7 +648,8 @@ namespace ServiceStack.ServiceClient.Web
                 ApplyWebRequestFilters(client);
 
                 if (httpMethod != HttpMethods.Get
-                    && httpMethod != HttpMethods.Delete)
+                    && httpMethod != HttpMethods.Delete
+                    && httpMethod != HttpMethods.Head)
                 {
                     client.ContentType = ContentType;
 
@@ -777,7 +852,7 @@ namespace ServiceStack.ServiceClient.Web
 
         public virtual void CustomMethodAsync<TResponse>(string httpVerb, IReturn<TResponse> request, Action<TResponse> onSuccess, Action<TResponse, Exception> onError)
         {
-            if (!HttpMethods.AllVerbs.Contains(httpVerb.ToUpper()))
+            if (!HttpMethods.HasVerb(httpVerb))
                 throw new NotSupportedException("Unknown HTTP Method is not supported: " + httpVerb);
 
             asyncClient.SendAsync(httpVerb, GetUrl(request.ToUrl(httpVerb, Format)), request, onSuccess, onError);
@@ -804,11 +879,11 @@ namespace ServiceStack.ServiceClient.Web
                 TResponse response;
 
                 if (!HandleResponseException(
-                    ex, 
+                    ex,
                     request,
-                    requestUri, 
-                    () => SendRequest(httpMethod, requestUri, request), 
-                    c => c.GetResponse(), 
+                    requestUri,
+                    () => SendRequest(httpMethod, requestUri, request),
+                    c => c.GetResponse(),
                     out response))
                 {
                     throw;
@@ -909,6 +984,16 @@ namespace ServiceStack.ServiceClient.Web
             return Send<TResponse>(httpVerb, request.ToUrl(httpVerb, Format), request);
         }
 
+        public virtual HttpWebResponse Head(IReturn request)
+        {
+            return Send<HttpWebResponse>(HttpMethods.Head, request.ToUrl(HttpMethods.Head), request);
+        }
+
+        public virtual HttpWebResponse Head(string relativeOrAbsoluteUrl)
+        {
+            return Send<HttpWebResponse>(HttpMethods.Head, relativeOrAbsoluteUrl, null);
+        }
+
         public virtual TResponse PostFileWithRequest<TResponse>(string relativeOrAbsoluteUrl, FileInfo fileToUpload, object request)
         {
             return PostFileWithRequest<TResponse>(relativeOrAbsoluteUrl, fileToUpload.OpenRead(), fileToUpload.Name, request);
@@ -1004,11 +1089,11 @@ namespace ServiceStack.ServiceClient.Web
                 // restore original position before retry
                 fileToUpload.Seek(currentStreamPosition, SeekOrigin.Begin);
 
-                if (!HandleResponseException(ex, 
-                    null, 
-                    requestUri, 
-                    createWebRequest, 
-                    c => { c.UploadFile(fileToUpload, fileName, mimeType); return c.GetResponse(); }, 
+                if (!HandleResponseException(ex,
+                    null,
+                    requestUri,
+                    createWebRequest,
+                    c => { c.UploadFile(fileToUpload, fileName, mimeType); return c.GetResponse(); },
                     out response))
                 {
                     throw;
@@ -1021,12 +1106,35 @@ namespace ServiceStack.ServiceClient.Web
         private TResponse HandleResponse<TResponse>(WebResponse webResponse)
         {
             ApplyWebResponseFilters(webResponse);
+
+            if (typeof(TResponse) == typeof(HttpWebResponse) && (webResponse is HttpWebResponse))
+            {
+                return (TResponse)Convert.ChangeType(webResponse, typeof(TResponse));
+            }
+            if (typeof(TResponse) == typeof(Stream)) //Callee Needs to dispose manually
+            {
+                return (TResponse)(object)webResponse.GetResponseStream();
+            }
+
             using (var responseStream = webResponse.GetResponseStream())
             {
+                if (typeof(TResponse) == typeof(string))
+                {
+                    using (var reader = new StreamReader(responseStream))
+                    {
+                        return (TResponse)(object)reader.ReadToEnd();
+                    }
+                }
+                if (typeof(TResponse) == typeof(byte[]))
+                {
+                    return (TResponse)(object)responseStream.ReadFully();
+                }
+
                 var response = DeserializeFromStream<TResponse>(responseStream);
                 return response;
             }
         }
+
 #endif
 
         public void Dispose() { }

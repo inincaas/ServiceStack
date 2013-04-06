@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
@@ -7,6 +8,7 @@ using ServiceStack.ServiceHost;
 using ServiceStack.ServiceClient.Web;
 using ServiceStack.Service;
 using ServiceStack.Api.Swagger;
+using ServiceStack.ServiceInterface.Cors;
 using ServiceStack.Text;
 
 namespace ServiceStack.WebHost.Endpoints.Tests
@@ -21,18 +23,100 @@ namespace ServiceStack.WebHost.Endpoints.Tests
         public string Name { get; set; }
     }
 
+    [ServiceHost.Api]
+    [Route("/swagger2/NameIsNotSetRequest", "GET")]
+    public class NameIsNotSetRequest
+    {
+        [ApiMember]
+        public string Name { get; set; }
+    }
+
+
+    [ServiceHost.Api("test")]
+    [Route("/swg3/conference/count", "GET")]
+    public class MultipleTestRequest : IReturn<int>
+    {
+        [ApiMember]
+        public string Name { get; set; }
+    }
+
+    [ServiceHost.Api]
+    [Route("/swg3/conference/{Name}/conferences", "POST")]
+    [Route("/swgb3/conference/{Name}/conferences", "POST")]
+    public class MultipleTest2Request : IReturn<object>
+    {
+        [ApiMember]
+        public string Name { get; set; }
+    }
+
+    [ServiceHost.Api]
+    [Route("/swg3/conference/{Name}/conferences", "DELETE")]
+    public class MultipleTest3Request : IReturn<object>
+    {
+        [ApiMember]
+        public string Name { get; set; }
+    }
+
+    [ServiceHost.Api]
+    [Route("/swg3/conference", "GET")]
+    public class MultipleTest4Request : IReturn<object>
+    {
+        [ApiMember]
+        public string Name { get; set; }
+    }
+
+
+
     public class SwaggerFeatureResponse
     {
         public bool IsSuccess { get; set; }
     }
 
-    public class SwaggerFeatureService : IService<SwaggerFeatureRequest>
+    public class MultipleTestRequestService : ServiceInterface.Service
     {
-        public object Execute(SwaggerFeatureRequest request)
+        public object Get(MultipleTestRequest request)
+        {
+            return null;
+        }
+
+        public object Post(MultipleTest2Request request)
+        {
+            return null;
+        }
+
+        public object Delete(MultipleTest3Request request)
+        {
+            return null;
+        }
+    }
+    public class MultipleTest2RequestService : ServiceInterface.Service
+    {
+        public object Get(MultipleTest4Request request)
+        {
+            return null;
+        }
+    }
+
+
+    public class SwaggerFeatureService : ServiceInterface.Service
+    {
+        public object Get(SwaggerFeatureRequest request)
         {
             return new SwaggerFeatureResponse { IsSuccess = true };
         }
+
+        public object Post(SwaggerFeatureRequest request)
+        {
+            return new SwaggerFeatureResponse { IsSuccess = true };
+        }
+
+        public object Get(NameIsNotSetRequest request)
+        {
+            return 0;
+        }
     }
+
+
     
     [TestFixture]
     public class SwaggerFeatureServiceTests
@@ -83,11 +167,44 @@ namespace ServiceStack.WebHost.Endpoints.Tests
         [Test, Explicit]
         public void RunFor5Mins()
         {
+            appHost.LoadPlugin(new CorsFeature("http://localhost:50000"));
+
+            Debug.WriteLine("ListeningOn: " + ListeningOn);
             Thread.Sleep(TimeSpan.FromMinutes(5));
         }
 
         [Test, TestCaseSource("RestClients")]
-        public void ShouldListServices(IRestClient client)
+        public void Should_get_default_name_from_property(IRestClient client)
+        {
+            var resource = client.Get<ResourceResponse>("/resource/swagger2/NameIsNotSetRequest");
+
+            var p = resource.Apis.SelectMany(t => t.Operations).SelectMany(t => t.Parameters);
+            Assert.That(p.Count(), Is.EqualTo(1));
+            Assert.That(p.FirstOrDefault(t=>t.Name == "Name"), Is.Not.Null);
+        }
+
+        [Test, TestCaseSource("RestClients")]
+        public void Should_group_similar_services(IRestClient client)
+        {
+            var resources = client.Get<ResourcesResponse>("/resources");
+            resources.PrintDump();
+
+            var swagger = resources.Apis.Where(t => t.Path.Contains("/resource/swg3"));
+            Assert.That(swagger.Count(), Is.EqualTo(1));
+        }
+
+        [Test, TestCaseSource("RestClients")]
+        public void Should_distinct_base_path(IRestClient client)
+        {
+            var resources = client.Get<ResourcesResponse>("/resources");
+            resources.PrintDump();
+
+            var swagger = resources.Apis.Where(t => t.Path.Contains("/resource/swgb3"));
+            Assert.That(swagger.Count(), Is.EqualTo(1));
+        }
+
+        [Test, TestCaseSource("RestClients")]
+        public void Should_list_services(IRestClient client)
         {
             var resources = client.Get<ResourcesResponse>("/resources");
             Assert.That(resources.BasePath, Is.EqualTo(BaseUrl));
@@ -100,7 +217,7 @@ namespace ServiceStack.WebHost.Endpoints.Tests
         }
 
         [Test, TestCaseSource("RestClients")]
-        public void ShouldRetrieveServiceInfo(IRestClient client)
+        public void Should_restrieve_service_parameters(IRestClient client)
         {
             var resource = client.Get<ResourceResponse>("/resource/swagger");
             Assert.That(resource.BasePath, Is.EqualTo(BaseUrl));

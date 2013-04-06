@@ -121,16 +121,20 @@
     <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppHostListenerEchoRequestTests.cs" />
     <Compile Include="AppHostHttpListenerLongRunningBaseTests.cs" />
     <Compile Include="AppHostListenerBaseTests.cs" />
     <Compile Include="AsyncRestClientTests.cs" />
     <Compile Include="AsyncServiceClientTests.cs" />
     <Compile Include="AttributeFiltersTest.cs" />
     <Compile Include="AuthTests.cs" />
+    <Compile Include="BufferedRequestTests.cs" />
     <Compile Include="CachedServiceTests.cs" />
     <Compile Include="CompressionTests.cs" />
+    <Compile Include="EncodingTests.cs" />
     <Compile Include="ExceptionHandling2Tests.cs" />
     <Compile Include="IntegrationTests\MovieSoap11Tests.cs" />
+    <Compile Include="ServiceClientsBuiltInResponseTests.cs" />
     <Compile Include="ServiceSetupTests.cs" />
     <Compile Include="UniqueRequestTests.cs" />
     <Compile Include="SendOneWayTests.cs" />

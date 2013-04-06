@@ -58,6 +58,9 @@ namespace ServiceStack.Common.Web
                 case "tif":
                     return "image/tiff";
 
+                case "svg":
+                    return "image/svg+xml";
+
                 case "htm":
                 case "html":
                 case "shtml":

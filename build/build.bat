@@ -6,7 +6,7 @@ SET BUILD=Release
 REM %MSBUILD% build.msbuild
 
 MD ..\NuGet\ServiceStack\lib\net35
-REM MD ..\NuGet\ServiceStack\lib\net40
+MD ..\NuGet\ServiceStack.Api.Swagger\lib\net35
 MD ..\NuGet\ServiceStack.Common\lib\net35
 MD ..\NuGet\ServiceStack.Mvc\lib\net40
 MD ..\NuGet\ServiceStack.Authentication.OpenId\lib\net35
@@ -60,6 +60,7 @@ COPY ..\src\ServiceStack\bin\%BUILD%\ServiceStack.Text.dll ..\..\ServiceStack.Or
 COPY ..\src\ServiceStack\bin\%BUILD%\ServiceStack.Text.pdb ..\..\ServiceStack.OrmLite\lib
 COPY ..\src\ServiceStack\bin\%BUILD%\ServiceStack.Common.dll ..\..\ServiceStack.OrmLite\lib
 COPY ..\src\ServiceStack\bin\%BUILD%\ServiceStack.Common.pdb ..\..\ServiceStack.OrmLite\lib
+COPY ..\tests\ServiceStack.Common.Tests\bin\%BUILD%\ServiceStack.Common.Tests.* ..\..\ServiceStack.OrmLite\lib\tests
 
 COPY ..\..\ServiceStack.OrmLite\NuGet\ServiceStack.OrmLite.SqlServer\lib\*.* ..\release\latest\ServiceStack
 COPY ..\..\ServiceStack.Redis\NuGet\lib\net35\*.* ..\release\latest\ServiceStack

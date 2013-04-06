@@ -10,7 +10,6 @@ using ServiceStack.Razor;
 using ServiceStack.ServiceHost;
 using ServiceStack.ServiceInterface;
 using ServiceStack.WebHost.Endpoints;
-using ServiceStack.WebHost.Endpoints.Support.Markdown;
 
 //The entire C# code for the stand-alone RazorRockstars demo.
 namespace RazorRockstars.Web
@@ -97,6 +96,12 @@ namespace RazorRockstars.Web
         public int? Aged { get; set; }
         [DataMember]
         public List<Rockstar> Results { get; set; }
+    }
+
+    public class SimpleModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
     }
 
     public class RockstarsService : RestServiceBase<Rockstars>

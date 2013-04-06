@@ -7,7 +7,7 @@ using ServiceStack.Common;
 using ServiceStack.Common.Web;
 using ServiceStack.Text;
 using ServiceStack.WebHost.Endpoints;
-using ServiceStack.WebHost.Endpoints.Extensions;
+using HttpRequestWrapper = ServiceStack.WebHost.Endpoints.Extensions.HttpRequestWrapper;
 
 namespace ServiceStack.ServiceHost
 {
@@ -44,6 +44,10 @@ namespace ServiceStack.ServiceHost
 			if ((value = httpReq.Headers[HttpHeaders.XParamOverridePrefix + name]) != null) return value;
 			if ((value = httpReq.QueryString[name]) != null) return value;
 			if ((value = httpReq.FormData[name]) != null) return value;
+
+            //IIS will assign null to params without a name: .../?some_value can be retrieved as req.Params[null]
+            //TryGetValue is not happy with null dictionary keys, so we should bail out here
+            if (string.IsNullOrEmpty(name)) return null;
 
 			Cookie cookie;
 			if (httpReq.Cookies.TryGetValue(name, out cookie)) return cookie.Value;
@@ -262,5 +266,6 @@ namespace ServiceStack.ServiceHost
             if (ex is HttpError) return ((HttpError)ex).ErrorCode;
             return ex.GetType().Name;
         }
+        
 	}
 }
