@@ -34,11 +34,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.Owin.Host.HttpListener">
-      <HintPath>..\..\src\packages\Microsoft.Owin.Host.HttpListener.0.19-alpha\lib\net40\Microsoft.Owin.Host.HttpListener.dll</HintPath>
+      <HintPath>..\..\src\packages\Microsoft.Owin.Host.HttpListener.0.21.0-pre\lib\net40\Microsoft.Owin.Host.HttpListener.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Owin.Hosting">
-      <HintPath>..\..\src\packages\Microsoft.Owin.Hosting.0.19-alpha\lib\net40\Microsoft.Owin.Hosting.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\..\src\packages\Microsoft.Owin.Hosting.0.21.0-pre\lib\net40\Microsoft.Owin.Hosting.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\lib\tests\nunit.framework.dll</HintPath>
