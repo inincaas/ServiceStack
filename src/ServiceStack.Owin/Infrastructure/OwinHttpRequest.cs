@@ -19,7 +19,7 @@ namespace ServiceStack.Owin.Infrastructure
 		private readonly Container _container;
 		private string _responseContentType;
         private MemoryStream _bufferedStream;
-        private Stream _inputStream;
+        private readonly Stream _inputStream;
 
 		public OwinHttpRequest(string operationName, IDictionary<string, object> environment, Container container)
 		{
@@ -83,7 +83,7 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public NameValueCollection Headers { get; private set; }
 		public string HttpMethod { get; private set; }
-		public Stream InputStream { get; private set; }
+        public Stream InputStream { get { return _bufferedStream ?? _inputStream; } }
         public bool IsLocal { get; private set; }
 		public bool IsSecureConnection { get; private set; }
 
@@ -137,7 +137,15 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public string GetRawBody()
 		{
-			throw new NotImplementedException();
+            if (_bufferedStream != null)
+            {
+                return _bufferedStream.ToArray().FromUtf8Bytes();
+            }
+
+            using (var reader = new StreamReader(InputStream))
+			{
+				return reader.ReadToEnd();
+			}
 		}
 
 		public T TryResolve<T>()
