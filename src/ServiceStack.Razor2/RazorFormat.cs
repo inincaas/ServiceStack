@@ -3,20 +3,18 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using ServiceStack.Common;
 using ServiceStack.Html;
 using ServiceStack.IO;
 using ServiceStack.Logging;
-using ServiceStack.Razor.Templating;
+using ServiceStack.Razor2.Templating;
 using ServiceStack.ServiceHost;
 using ServiceStack.Text;
-using ServiceStack.VirtualPath;
 using ServiceStack.WebHost.Endpoints;
 using ServiceStack.WebHost.Endpoints.Extensions;
 using ServiceStack.WebHost.Endpoints.Support;
 
-namespace ServiceStack.Razor
+namespace ServiceStack.Razor2
 {
     public enum RazorPageType
     {
@@ -26,7 +24,7 @@ namespace ServiceStack.Razor
         Template = 4,
     }
 
-    public class RazorFormat : IRazorViewEngine, IPlugin, IRazorPlugin
+    public class RazorFormat : IRazorViewEngine, IPlugin, IRazor2Plugin
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(RazorFormat));
 
@@ -66,6 +64,8 @@ namespace ServiceStack.Razor
 
         public Func<string, IEnumerable<ViewPageRef>> FindRazorPagesFn { get; set; }
 
+        public Func<object, IHttpRequest, ViewPageRef> ResolveViewFn { get; set; }
+
         public IVirtualPathProvider VirtualPathProvider { get; set; }
 
         public HashSet<string> TemplateNamespaces { get; set; }
@@ -103,13 +103,14 @@ namespace ServiceStack.Razor
         public RazorFormat()
         {
             this.FindRazorPagesFn = FindRazorPages;
+            this.ResolveViewFn = GetViewPageByResponse;
             this.ReplaceTokens = new Dictionary<string, string>();
             this.TemplateNamespaces = new HashSet<string> {
                 "System",
                 "System.Collections.Generic",
                 "System.Linq",
                 "ServiceStack.Html",
-                "ServiceStack.Razor",
+                "ServiceStack.Razor2",
             };
             this.RazorExtensionBaseTypes = new Dictionary<string, Type>(StringComparer.CurrentCultureIgnoreCase) {
 				{"cshtml", typeof(ViewPage<>) },
@@ -168,7 +169,18 @@ namespace ServiceStack.Razor
                 if (catchAllPathsNotFound.Contains(pathInfo))
                     return null;
 
-                razorPage = FindByPathInfo(pathInfo);
+                try
+                {
+                    razorPage = FindByPathInfo( pathInfo );
+                }
+                catch(TemplateCompilationException tcex)
+                {
+                    if ( appHost.Config.DebugMode && tcex.HttpCompileException != null )
+                    {
+                        throw tcex.HttpCompileException;
+                    }
+                    throw;
+                }
 
                 if (WatchForModifiedPages)
                     ReloadIfNeeeded(razorPage);
@@ -222,7 +234,7 @@ namespace ServiceStack.Razor
         public bool ProcessRequest(IHttpRequest httpReq, IHttpResponse httpRes, object dto)
         {
             ViewPageRef razorPage;
-            if ((razorPage = GetViewPageByResponse(dto, httpReq)) == null)
+            if ((razorPage = ResolveViewFn(dto, httpReq)) == null)
                 return false;
 
             if (WatchForModifiedPages)
@@ -666,13 +678,7 @@ namespace ServiceStack.Razor
             if (!ContentPages.TryGetValue(filePath, out razorPage))
                 throw new InvalidDataException(ErrorPageNotFound.FormatWith(filePath));
 
-            return RenderStaticPage(razorPage);
-        }
-
-        private string RenderStaticPage(ViewPageRef markdownPage)
-        {
-            var template = ExecuteTemplate((object)null,
-                markdownPage.PageName, markdownPage.Template);
+            var template = ExecuteTemplate((object)null, razorPage.PageName, razorPage.Template);
 
             return template.Result;
         }

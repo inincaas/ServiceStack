@@ -65,6 +65,9 @@ namespace ServiceStack.Common.Utils
         {
             foreach (var path in paths)
             {
+                if (string.IsNullOrEmpty(path))
+                    continue;
+                
                 if (sb.Length > 0)
                     sb.Append("/");
 
@@ -77,6 +80,13 @@ namespace ServiceStack.Common.Utils
         public static string CombinePaths(params string[] paths)
         {
             return CombinePaths(new StringBuilder(), paths);
+        }
+
+        public static string AssertDir(this string dirPath)
+        {
+            if (!Directory.Exists(dirPath))
+                Directory.CreateDirectory(dirPath);
+            return dirPath;
         }
     }
 

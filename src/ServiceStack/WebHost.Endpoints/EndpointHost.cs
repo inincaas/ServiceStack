@@ -141,8 +141,8 @@ namespace ServiceStack.WebHost.Endpoints
             if ((Feature.RequestInfo & config.EnableFeatures) != Feature.RequestInfo)
                 Plugins.RemoveAll(x => x is RequestInfoFeature);
 
-            if ((Feature.Razor & config.EnableFeatures) != Feature.Razor)
-                Plugins.RemoveAll(x => x is IRazorPlugin);    //external
+            if ((Feature.Razor2 & config.EnableFeatures) != Feature.Razor2)
+                Plugins.RemoveAll(x => x is IRazor2Plugin);    //external
 
             if ((Feature.ProtoBuf & config.EnableFeatures) != Feature.ProtoBuf)
                 Plugins.RemoveAll(x => x is IProtoBufPlugin); //external
@@ -231,6 +231,11 @@ namespace ServiceStack.WebHost.Endpoints
 
             config.ServiceManager.AfterInit();
             ServiceManager = config.ServiceManager; //reset operations
+        }
+
+        public static T GetPlugin<T>() where T : class, IPlugin 
+        {
+            return Plugins.FirstOrDefault(x => x is T) as T;
         }
 
         public static void AddPlugin(params IPlugin[] plugins)

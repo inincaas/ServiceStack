@@ -1,6 +1,7 @@
 ﻿using System.CodeDom.Compiler;
 using System.Web.Razor.Parser.SyntaxTree;
-using ServiceStack.Razor.Templating;
+using ServiceStack.Common.Extensions;
+using ServiceStack.Razor2.Templating;
 using ServiceStack.Text;
 using System;
 using System.CodeDom;
@@ -10,9 +11,8 @@ using System.Linq;
 using System.Reflection;
 using System.Web.Razor;
 using System.Web.Razor.Generator;
-using System.Web.Razor.Parser;
 
-namespace ServiceStack.Razor.Compilation
+namespace ServiceStack.Razor2.Compilation
 {
     /// <summary>
     /// Provides a base implementation of a compiler service.
@@ -95,7 +95,8 @@ namespace ServiceStack.Razor.Compilation
                 GenerateInMemory = true,
                 GenerateExecutable = false,
                 IncludeDebugInformation = false,
-                CompilerOptions = "/target:library /optimize",                
+                CompilerOptions = "/target:library /optimize",
+                TempFiles = { KeepFiles = true }
             };
 
             var assemblies = CompilerServices
@@ -120,23 +121,38 @@ namespace ServiceStack.Razor.Compilation
 				}
 			}
 
-            return CodeDomProvider.CompileAssemblyFromDom(@params, compileUnit);
+            var results = CodeDomProvider.CompileAssemblyFromDom( @params, compileUnit );
+
+            //Tricky: Don't forget to cleanup. 
+            // Simply setting KeepFiles = false and then calling
+            // dispose on the parent TempFilesCollection won't
+            // clean up. So, create a new collection and
+            // explicitly mark the files for deletion.
+            var tempFilesMarkedForDeletion = new TempFileCollection(null);
+            @params.TempFiles
+                   .OfType<string>()
+                   .ForEach( file => tempFilesMarkedForDeletion.AddFile( file, false ) );
+
+            using ( tempFilesMarkedForDeletion )
+            {
+                if ( results.Errors != null && results.Errors.HasErrors )
+                {
+                    throw new TemplateCompilationException( results );
+                }
+
+                return results;
+            }
         }
 
         public Type CompileType(TypeContext context)
         {
             var results = Compile(context);
 
-            if (results.Errors != null && results.Errors.Count > 0)
-            {
-                throw new TemplateCompilationException(results.Errors);
-            }
-
             return results.CompiledAssembly.GetType("CompiledRazorTemplates.Dynamic." + context.ClassName);
         }
 
         /// <summary>
-        /// Generates any required contructors for the specified type.
+        /// Generates any required constructors for the specified type.
         /// </summary>
         /// <param name="constructors">The set of constructors.</param>
         /// <param name="codeType">The code type declaration.</param>
@@ -193,7 +209,7 @@ namespace ServiceStack.Razor.Compilation
                 GeneratedClassContext = new GeneratedClassContext(
                     "Execute", "Write", "WriteLiteral",
                     "WriteTo", "WriteLiteralTo",
-                    "ServiceStack.Razor.Templating.TemplateWriter",
+                    "ServiceStack.Razor2.Templating.TemplateWriter",
                     "WriteSection")
                     {
                         ResolveUrlMethodName = "Href"
