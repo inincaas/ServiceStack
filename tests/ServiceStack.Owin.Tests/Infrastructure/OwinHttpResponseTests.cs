@@ -39,6 +39,13 @@
         }
 
         [Test]
+        public void Can_set_content_length()
+        {
+            _sut.SetContentLength(5000);
+            Assert.AreEqual("5000", _owinEnvironment.GetResponseHeader(OwinConstants.ContentLengthHeader));
+        }
+
+        [Test]
         public void Can_write_to_response_stream()
         {
             string text = "Response!";
@@ -80,6 +87,14 @@
         public void When_create_with_null_environment_Then_should_throw()
         {
             Assert.Throws<ArgumentNullException>(() => new OwinHttpResponse(null));
+        }
+
+        [Test]
+        public void When_Redirect_Then_Redirected()
+        {
+            _sut.Redirect("http://www.example.com");
+            Assert.AreEqual(302, _owinEnvironment.Get<int>(OwinConstants.ResponseStatusCodeKey));
+            Assert.AreEqual("http://www.example.com", _owinEnvironment.GetResponseHeader(OwinConstants.LocationHeader));
         }
     }
 }

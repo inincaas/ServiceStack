@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace ServiceStack.Owin.Infrastructure
 {
     using System;
@@ -36,7 +38,8 @@ namespace ServiceStack.Owin.Infrastructure
 			get { return _environment.GetResponseHeader(OwinConstants.ContentTypeHeader); }
 			set { _environment.SetResponseHeader(OwinConstants.ContentTypeHeader, value); }
 		}
-		public ICookies Cookies { get { throw new NotImplementedException(); } }
+
+        public ICookies Cookies { get { throw new NotImplementedException(); } }
 
 		public void AddHeader(string name, string value)
 		{
@@ -45,7 +48,9 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public void Redirect(string url)
 		{
-			throw new NotImplementedException();
+			AddHeader(OwinConstants.LocationHeader, url);
+		    StatusCode = (int)HttpStatusCode.Redirect;
+		    StatusDescription = "Found";
 		}
 
 		public Stream OutputStream
@@ -85,6 +90,11 @@ namespace ServiceStack.Owin.Infrastructure
 			get { return _isClosed; }
 		}
 
-		#endregion
+        public void SetContentLength(long contentLength)
+        {
+            AddHeader(OwinConstants.ContentLengthHeader, contentLength.ToString());
+        }
+
+        #endregion
 	}
 }
