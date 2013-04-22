@@ -55,6 +55,7 @@
     <Compile Include="HelloService\HelloResponse.cs" />
     <Compile Include="HelloService\HelloService.cs" />
     <Compile Include="HelloService\OwinEnvironmentExtensions.cs" />
+    <Compile Include="Infrastructure\OwinHttpRequestFormTests.cs" />
     <Compile Include="Infrastructure\OwinHttpResponseTests.cs" />
     <Compile Include="Infrastructure\OwinEnvironmentExtensionsTests.cs" />
     <Compile Include="Infrastructure\OwinHttpRequestTests.cs" />

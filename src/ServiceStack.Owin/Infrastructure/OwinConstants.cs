@@ -35,10 +35,12 @@ namespace ServiceStack.Owin.Infrastructure
 		public const string AcceptHeader = "Accept";
 		public const string ContentTypeHeader = "Content-Type";
 		public const string ContentLengthHeader = "Content-Length";
+	    public const string CookieHeader = "Cookie";
 		public const string TransferEncodingHeader = "Transfer-Encoding";
 		public const string KeepAliveHeader = "Keep-Alive";
 		public const string ConnectionHeader = "Connection";
 		public const string HostHeader = "Host";
+	    public const string UserAgent = "User-Agent";
         public const string XForwardedFor = "X-Forwarded-For";
         public const string XRealIp = "X-Real-IP";
 	}

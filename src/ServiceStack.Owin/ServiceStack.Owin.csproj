@@ -48,6 +48,7 @@
     <Compile Include="Infrastructure\OwinEnvironmentExtensions.cs" />
     <Compile Include="Infrastructure\OwinHttpRequest.cs" />
     <Compile Include="Infrastructure\OwinHttpResponse.cs" />
+    <Compile Include="Infrastructure\UrlDecoder.cs" />
     <Compile Include="OwinExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

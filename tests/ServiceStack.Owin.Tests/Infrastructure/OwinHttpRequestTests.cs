@@ -24,6 +24,10 @@
                                                                                    new[] {"localhost"}
                                                                                },
                                                                                {
+                                                                                   OwinConstants.CookieHeader,
+                                                                                   new[] { "cookie1=value1; cookie2=value2; scoped.cookie=poor-mans-scope"}
+                                                                               },
+                                                                               {
                                                                                    OwinConstants.ContentTypeHeader,
                                                                                    new[] {"application/xml"}
                                                                                },
@@ -34,6 +38,10 @@
                                                                                {
                                                                                    OwinConstants.AcceptHeader,
                                                                                    new[] {"text/html"}
+                                                                               },
+                                                                               {
+                                                                                   OwinConstants.UserAgent,
+                                                                                   new[] { "UnitTest/1.0 (en-us) Unknown/0.0"}
                                                                                },
                                                                                {
                                                                                    OwinConstants.XForwardedFor,
@@ -96,6 +104,20 @@
         }
 
         [Test]
+        public void Can_get_cookie_count()
+        {
+            Assert.AreEqual(3, _sut.Cookies.Count);
+        }
+
+        [Test]
+        public void Can_get_cookie()
+        {
+            var cookie = _sut.Cookies["cookie2"];
+            Assert.IsNotNull(cookie);
+            Assert.AreEqual("value2", cookie.Value);
+        }
+
+        [Test]
         public void Can_get_is_secure_connection()
         {
             Assert.True(_sut.IsSecureConnection);
@@ -114,9 +136,21 @@
         }
 
         [Test]
+        public void Can_get_remote_ip()
+        {
+            Assert.AreEqual("127.0.0.1", _sut.RemoteIp);
+        }
+
+        [Test]
         public void Can_get_request_method()
         {
             Assert.AreEqual("POST", _sut.HttpMethod);
+        }
+
+        [Test]
+        public void Can_get_user_agent()
+        {
+            Assert.AreEqual("UnitTest/1.0 (en-us) Unknown/0.0", _sut.UserAgent);
         }
 
         [Test]

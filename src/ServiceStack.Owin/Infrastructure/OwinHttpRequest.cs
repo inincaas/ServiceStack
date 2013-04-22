@@ -14,9 +14,16 @@ namespace ServiceStack.Owin.Infrastructure
     using ServiceStack.WebHost.Endpoints.Extensions;
 
     public class OwinHttpRequest : IHttpRequest
-	{
+    {
+        private static readonly char[] CommaSemicolon = new[] {',', ';'};
+        private static readonly char[] AmpersandSemicolon = new[] {'&', ';'};
+        private static readonly char[] EqualsSeparator = new[] {'='};
+        private static readonly char[] Whitespace = new[] {' '};
+
 		private readonly IDictionary<string, object> _environment;
 		private readonly Container _container;
+        private NameValueCollection _form;
+        private IDictionary<string, Cookie> _cookies; 
 		private string _responseContentType;
         private MemoryStream _bufferedStream;
         private readonly Stream _inputStream;
@@ -46,7 +53,6 @@ namespace ServiceStack.Owin.Infrastructure
             IsLocal = _environment.Get<bool>(OwinConstants.IsLocalKey);
 			IsSecureConnection = _environment.Get<string>(OwinConstants.RequestSchemeKey).ToUpperInvariant() == "HTTPS";
 			PathInfo = _environment.Get<string>(OwinConstants.RequestPathKey);
-			Files = new IFile[0]; //TODO Should I be doing something here?
 			QueryString = HttpUtility.ParseQueryString(_environment.Get<string>(OwinConstants.RequestQueryStringKey));
 			RawUrl = _environment.Get<string>(OwinConstants.RequestPathBaseKey) +
 			         _environment.Get<string>(OwinConstants.RequestPathKey);
@@ -54,6 +60,8 @@ namespace ServiceStack.Owin.Infrastructure
 			{
 				RawUrl += "?" + _environment.Get<string>(OwinConstants.RequestQueryStringKey);
 			}
+		    RemoteIp = _environment.Get<string>(OwinConstants.ServerRemoteIpAddressKey);
+		    UserAgent = _environment.GetRequestHeader(OwinConstants.UserAgent);
 			UserHostAddress = _environment.Get<string>(OwinConstants.ServerRemoteIpAddressKey) + ":" +
 			                  _environment.Get<string>(OwinConstants.ServerRemotePortKey);
             XForwardedFor = _environment.GetRequestHeader(OwinConstants.XForwardedFor);
@@ -71,14 +79,25 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public IDictionary<string, Cookie> Cookies
 		{
-			get { throw new NotImplementedException(); }
-		}
+            get
+            {
+                if (_cookies != null) return _cookies;
+                
+                _cookies = new Dictionary<string, Cookie>(StringComparer.OrdinalIgnoreCase);
+                var text = _environment.GetRequestHeader(OwinConstants.CookieHeader);
+                
+                if (String.IsNullOrEmpty(text)) return _cookies;
 
-		public IFile[] Files { get; private set; }
+                foreach (var kv in ParseValues(text, CommaSemicolon))
+                {
+                    if (!_cookies.ContainsKey(kv.Key))
+                    {
+                        _cookies.Add(kv.Key, new Cookie(kv.Key, kv.Value));
+                    }
+                }
 
-		public NameValueCollection FormData
-		{
-			get { throw new NotImplementedException(); }
+                return _cookies;
+            }
 		}
 
 		public NameValueCollection Headers { get; private set; }
@@ -93,7 +112,7 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public object OriginalRequest
 		{
-			get { throw new NotImplementedException(); }
+			get { return _environment; }
 		}
 
 		public string PathInfo { get; private set; }
@@ -102,12 +121,9 @@ namespace ServiceStack.Owin.Infrastructure
 
 		public string RawUrl { get; private set; }
 
-		public string RemoteIp
-		{
-			get { throw new NotImplementedException(); }
-		}
+        public string RemoteIp { get; private set; }
 
-		public string ResponseContentType
+        public string ResponseContentType
 		{
 			get { return _responseContentType ?? (_responseContentType = this.GetResponseContentType()); }
 			set { _responseContentType = value; }
@@ -124,10 +140,7 @@ namespace ServiceStack.Owin.Infrastructure
             }
         }
 
-		public string UserAgent
-		{
-			get { throw new NotImplementedException(); }
-		}
+		public string UserAgent { get; private set; }
 
 		public string UserHostAddress { get; private set; }
 
@@ -152,5 +165,95 @@ namespace ServiceStack.Owin.Infrastructure
 		{
 			return _container.TryResolve<T>();
 		}
+
+        private string MediaType
+        {
+            get
+            {
+                var contentType = ContentType;
+                if (contentType == null)
+                {
+                    return null;
+                }
+
+                var delimiterPos = contentType.IndexOfAny(CommaSemicolon);
+                return delimiterPos < 0 ? contentType : contentType.Substring(0, delimiterPos);
+            }
+        }
+
+        public IFile[] Files
+        {
+            get
+            {
+                ReadFormData();
+                throw new NotImplementedException();
+            }
+        }
+
+        public NameValueCollection FormData
+        {
+            get
+            {
+                ReadFormData();
+                return _form;
+            }
+        }
+
+        private void ReadFormData()
+        {
+            if (_form != null) return;
+            _form = new NameValueCollection();
+
+            var mediaType = MediaType;
+
+            if (String.Equals(mediaType, "application/x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessWwwForm();
+            }
+            else if (String.Equals(mediaType, "multipart/form-data", StringComparison.OrdinalIgnoreCase))
+            {
+                ProcessMultiPartForm();
+            }
+        }
+
+        private void ProcessWwwForm()
+        {
+            var body = InputStream;
+
+            if (body.CanSeek)
+            {
+                body.Seek(0, SeekOrigin.Begin);
+            }
+
+            var text = new StreamReader(body).ReadToEnd();
+
+            foreach (var kv in ParseValues(text, AmpersandSemicolon))
+            {
+                _form.Add(kv.Key, kv.Value);
+            }
+        }
+
+        private void ProcessMultiPartForm()
+        {
+            // TODO: Need to implement this.
+            throw new NotImplementedException();
+        }
+
+        private static IEnumerable<KeyValuePair<string, string>> ParseValues(string value, char[] delimiters)
+        {
+            value = value ?? String.Empty;
+
+            var items = value.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var item in items)
+            {
+                string[] pair = item.Split(EqualsSeparator, 2, StringSplitOptions.None);
+
+                string pairKey = UrlDecoder.UrlDecode(pair[0]).TrimStart(Whitespace);
+                string pairValue = pair.Length < 2 ? String.Empty : UrlDecoder.UrlDecode(pair[1]);
+
+                yield return new KeyValuePair<string, string>(pairKey, pairValue);
+            }
+        }
 	}
 }
