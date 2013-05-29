@@ -66,6 +66,12 @@ namespace ServiceStack.Owin.Infrastructure
 			                  _environment.Get<string>(OwinConstants.ServerRemotePortKey);
             XForwardedFor = _environment.GetRequestHeader(OwinConstants.XForwardedFor);
             XRealIp = _environment.GetRequestHeader(OwinConstants.XRealIp);
+            var referrer = _environment.GetRequestHeader(OwinConstants.Referrer);
+            Uri urlReferrer;
+            if (Uri.TryCreate(referrer, UriKind.RelativeOrAbsolute, out urlReferrer))
+            {
+                UrlReferrer = urlReferrer;
+            }
 		}
 
 		public string AbsoluteUri { get; private set; }
@@ -73,7 +79,8 @@ namespace ServiceStack.Owin.Infrastructure
 		public string[] AcceptTypes { get; private set; }
 
 		public string ApplicationFilePath { get; private set; }
-		public long ContentLength { get; private set; }
+        public Uri UrlReferrer { get; private set; }
+        public long ContentLength { get; private set; }
 
 		public string ContentType { get; private set; }
 

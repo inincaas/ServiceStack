@@ -41,6 +41,7 @@ namespace ServiceStack.Owin.Infrastructure
 		public const string ConnectionHeader = "Connection";
 		public const string HostHeader = "Host";
 	    public const string LocationHeader = "Location";
+	    public const string Referrer = "Referer";
 	    public const string UserAgent = "User-Agent";
         public const string XForwardedFor = "X-Forwarded-For";
         public const string XRealIp = "X-Real-IP";
