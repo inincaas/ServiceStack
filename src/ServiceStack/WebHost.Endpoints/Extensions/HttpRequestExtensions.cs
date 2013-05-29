@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Web;
+using ServiceStack.Common;
 using ServiceStack.Common.Extensions;
 using ServiceStack.Common.Utils;
 using ServiceStack.Common.Web;
@@ -398,6 +399,25 @@ namespace ServiceStack.WebHost.Endpoints.Extensions
             return httpReq.GetItem("Template") as string;
         }
 
+        public static string ResolveAbsoluteUrl(this IHttpRequest httpReq, string url)
+        {
+            return EndpointHost.AppHost.ResolveAbsoluteUrl(url, httpReq);
+        }
+
+        public static string ResolveBaseUrl(this IHttpRequest httpReq)
+        {
+            return EndpointHost.AppHost.ResolveAbsoluteUrl("~/", httpReq);
+        }
+
+        public static string GetAbsoluteUrl(this IHttpRequest httpReq, string url)
+        {
+            if (url.SafeSubstring(0, 2) == "~/")
+            {
+                url = httpReq.GetBaseUrl().CombineWith(url.Substring(2));
+            }
+            return url;
+        }
+
         public static string GetBaseUrl(this IHttpRequest httpReq)
         {
             var baseUrl = ServiceStackHttpHandlerFactory.GetBaseUrl();
@@ -431,7 +451,8 @@ namespace ServiceStack.WebHost.Endpoints.Extensions
 
 	    public static EndpointAttributes GetAttributes(this IHttpRequest request)
 	    {
-	        if (EndpointHost.DebugMode)
+            if (EndpointHost.DebugMode 
+                && request.QueryString != null) //Mock<IHttpRequest>
 	        {
                 var simulate = request.QueryString["simulate"];
                 if (simulate != null)

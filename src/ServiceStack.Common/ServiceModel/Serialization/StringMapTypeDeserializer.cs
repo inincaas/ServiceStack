@@ -16,7 +16,7 @@ namespace ServiceStack.ServiceModel.Serialization
     /// </summary>
     public class StringMapTypeDeserializer
     {
-        private static readonly ILog Log = LogManager.GetLogger(typeof(StringMapTypeDeserializer));
+        private static ILog Log = LogManager.GetLogger(typeof(StringMapTypeDeserializer));
 
         internal class PropertySerializerEntry
         {
@@ -35,6 +35,20 @@ namespace ServiceStack.ServiceModel.Serialization
         private readonly Dictionary<string, PropertySerializerEntry> propertySetterMap
             = new Dictionary<string, PropertySerializerEntry>(Text.StringExtensions.InvariantComparerIgnoreCase());
 
+        internal StringMapTypeDeserializer(Type type, ILog log) : this(type)
+        {
+            Log = log;
+        }
+
+        public ParseStringDelegate GetParseFn(Type propertyType)
+        {
+            //Don't JSV-decode string values for string properties
+            if (propertyType == typeof(string))
+                return s => s;
+
+            return JsvReader.GetParseFn(propertyType);
+        }
+
         public StringMapTypeDeserializer(Type type)
         {
             this.type = type;
@@ -43,7 +57,7 @@ namespace ServiceStack.ServiceModel.Serialization
             {
                 var propertySetFn = JsvDeserializeType.GetSetPropertyMethod(type, propertyInfo);
                 var propertyType = propertyInfo.PropertyType;
-                var propertyParseStringFn = JsvReader.GetParseFn(propertyType);
+                var propertyParseStringFn = GetParseFn(propertyType);
                 var propertySerializer = new PropertySerializerEntry(propertySetFn, propertyParseStringFn) { PropertyType = propertyType };
 
                 var attr = propertyInfo.FirstAttribute<DataMemberAttribute>();
@@ -69,7 +83,7 @@ namespace ServiceStack.ServiceModel.Serialization
 
         }
 
-        public object PopulateFromMap(object instance, IDictionary<string, string> keyValuePairs)
+        public object PopulateFromMap(object instance, IDictionary<string, string> keyValuePairs, List<string> ignoredWarningsOnPropertyNames = null)
         {
             string propertyName = null;
             string propertyTextValue = null;
@@ -86,9 +100,10 @@ namespace ServiceStack.ServiceModel.Serialization
 
                     if (!propertySetterMap.TryGetValue(propertyName, out propertySerializerEntry))
                     {
-                        if (propertyName != "format" && propertyName != "callback" && propertyName != "debug")
+                        var ignoredProperty = propertyName.ToLowerInvariant();
+                        if (ignoredWarningsOnPropertyNames == null || !ignoredWarningsOnPropertyNames.Contains(ignoredProperty))
                         {
-                            Log.WarnFormat("Property '{0}' does not exist on type '{1}'", propertyName, type.FullName);
+                            Log.WarnFormat("Property '{0}' does not exist on type '{1}'", ignoredProperty, type.FullName);
                         }
                         continue;
                     }
@@ -97,6 +112,12 @@ namespace ServiceStack.ServiceModel.Serialization
                     {
                         Log.WarnFormat("Could not set value of read-only property '{0}' on type '{1}'", propertyName, type.FullName);
                         continue;
+                    }
+
+                    if (Type.GetTypeCode(propertySerializerEntry.PropertyType) == TypeCode.Boolean)
+                    {
+                        //InputExtensions.cs#530 MVC Checkbox helper emits extra hidden input field, generating 2 values, first is the real value
+                        propertyTextValue = propertyTextValue.SplitOnFirst(',').First(); 
                     }
 
                     var value = propertySerializerEntry.PropertyParseStringFn(propertyTextValue);
@@ -129,7 +150,7 @@ namespace ServiceStack.ServiceModel.Serialization
 
         public object CreateFromMap(IDictionary<string, string> keyValuePairs)
         {
-            return PopulateFromMap(null, keyValuePairs);
+            return PopulateFromMap(null, keyValuePairs, null);
         }
     }
 }

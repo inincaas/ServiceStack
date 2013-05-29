@@ -8,7 +8,7 @@ using ServiceStack.Common;
 using ServiceStack.DataAnnotations;
 using ServiceStack.OrmLite;
 using ServiceStack.OrmLite.Sqlite;
-using ServiceStack.Razor2;
+using ServiceStack.Razor;
 using ServiceStack.ServiceHost;
 using ServiceStack.ServiceInterface;
 using ServiceStack.WebHost.Endpoints;
@@ -36,6 +36,7 @@ namespace ServiceStack.Auth.Tests
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int? Age { get; set; }
+        public bool Alive { get; set; }
 
         public Rockstar() { }
         public Rockstar(int id, string firstName, string lastName, int age)

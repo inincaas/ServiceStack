@@ -36,6 +36,16 @@ namespace ServiceStack.Common
             return RegexSplitCamelCase.Replace(value, " $1").TrimStart();
         }
 
+        public static string ToCamelCase(this string value)
+        {
+            return Text.StringExtensions.ToCamelCase(value);
+        }
+
+        public static string ToLowercaseUnderscore(this string value)
+        {
+            return Text.StringExtensions.ToLowercaseUnderscore(value);
+        }
+
         public static string ToInvariantUpper(this char value)
         {
 #if NETFX_CORE
@@ -124,7 +134,8 @@ namespace ServiceStack.Common
         public static string CombineWith(this string path, params string[] thesePaths)
         {
             if (thesePaths.Length == 1 && thesePaths[0] == null) return path;
-            return PathUtils.CombinePaths(new StringBuilder(path.TrimEnd('/', '\\')), thesePaths);
+            var startPath = path.Length > 1 ? path.TrimEnd('/', '\\') : path;
+            return PathUtils.CombinePaths(new StringBuilder(startPath), thesePaths);
         }
 
         public static string CombineWith(this string path, params object[] thesePaths)

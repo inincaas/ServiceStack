@@ -90,7 +90,7 @@ namespace ServiceStack.ServiceHost
         private string body;
         public string GetRawBody()
         {
-            return body ?? (body = requestContext.Message.Body.Dump());
+            return body ?? (body = (requestContext.Message.Body ?? "").Dump());
         }
 
         public string RawUrl
@@ -146,7 +146,7 @@ namespace ServiceStack.ServiceHost
 
         public long ContentLength
         {
-            get { return GetRawBody().Length; }
+            get { return (GetRawBody() ?? "").Length; }
         }
 
         public IFile[] Files
@@ -155,6 +155,11 @@ namespace ServiceStack.ServiceHost
         }
 
         public string ApplicationFilePath
+        {
+            get { return null; }
+        }
+
+        public System.Uri UrlReferrer
         {
             get { return null; }
         }

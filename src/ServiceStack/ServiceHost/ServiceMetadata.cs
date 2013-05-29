@@ -175,17 +175,17 @@ namespace ServiceStack.ServiceHost
 
         public List<string> GetAllOperationNames()
         {
-            return Operations.Select(x => x.RequestType.Name).ToList();
+            return Operations.Select(x => x.RequestType.Name).OrderBy(operation => operation).ToList();
         }
 
         public List<string> GetOperationNamesForMetadata(IHttpRequest httpReq)
         {
-            return Operations.Select(x => x.RequestType.Name).ToList();
+            return GetAllOperationNames();
         }
 
         public List<string> GetOperationNamesForMetadata(IHttpRequest httpReq, Format format)
         {
-            return Operations.Select(x => x.RequestType.Name).ToList();
+            return GetAllOperationNames();
         }
 
         public bool IsVisible(IHttpRequest httpReq, Operation operation)
@@ -405,12 +405,16 @@ namespace ServiceStack.ServiceHost
 
         public static List<ApiMemberAttribute> GetApiMembers(this Type operationType)
         {
-            var attrs = operationType
-                .GetMembers(BindingFlags.Instance | BindingFlags.Public)
-                .SelectMany(x =>
-                    x.GetCustomAttributes(typeof(ApiMemberAttribute), true).OfType<ApiMemberAttribute>()
-                )
-                .ToList();
+            var members = operationType.GetMembers(BindingFlags.Instance | BindingFlags.Public);
+            List<ApiMemberAttribute> attrs = new List<ApiMemberAttribute>();
+            foreach (var member in members)
+            {
+                var memattr = member.GetCustomAttributes(typeof(ApiMemberAttribute), true)
+                    .OfType<ApiMemberAttribute>()
+                    .Select(x => { x.Name = x.Name ?? member.Name; return x; });
+
+                attrs.AddRange(memattr);
+            }
 
             return attrs;
         }

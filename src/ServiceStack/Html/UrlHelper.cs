@@ -6,7 +6,7 @@ namespace ServiceStack.Html
 	{
 		public string Content(string url)
 		{
-			return VirtualPathUtility.ToAbsolute(url);
+		    return VirtualPathUtility.ToAbsolute(url);
 		}
 	}
 }

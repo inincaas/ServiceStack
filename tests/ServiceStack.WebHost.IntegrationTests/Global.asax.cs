@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net;
 using Funq;
 using ServiceStack.Authentication.OpenId;
 using ServiceStack.CacheAccess;
@@ -11,7 +10,6 @@ using ServiceStack.Messaging;
 using ServiceStack.MiniProfiler;
 using ServiceStack.MiniProfiler.Data;
 using ServiceStack.OrmLite;
-using ServiceStack.OrmLite.Sqlite;
 using ServiceStack.Plugins.ProtoBuf;
 using ServiceStack.Redis;
 using ServiceStack.Redis.Messaging;
@@ -22,20 +20,19 @@ using ServiceStack.Api.Swagger;
 using ServiceStack.ServiceInterface.Validation;
 using ServiceStack.Text;
 using ServiceStack.WebHost.Endpoints;
-using ServiceStack.WebHost.Endpoints.Support.Markdown;
 using ServiceStack.WebHost.IntegrationTests.Services;
 
 namespace ServiceStack.WebHost.IntegrationTests
 {
     public class Global : System.Web.HttpApplication
     {
+        private const bool StartMqHost = false; 
+
         public class AppHost
             : AppHostBase
         {
             public AppHost()
-                : base("ServiceStack WebHost IntegrationTests", typeof(Reverse).Assembly)
-            {
-            }
+                : base("ServiceStack WebHost IntegrationTests", typeof(Reverse).Assembly) {}
 
             public override void Configure(Container container)
             {
@@ -114,20 +111,20 @@ namespace ServiceStack.WebHost.IntegrationTests
                     DebugMode = true, //Show StackTraces for easier debugging
                 });
 
-                var redisManager = new BasicRedisClientManager();
-                var mqHost = new RedisMqServer(redisManager);
-                mqHost.RegisterHandler<Reverse>(ServiceController.ExecuteMessage);
-                mqHost.Start();
-
-                this.Container.Register((IMessageService)mqHost);
+                if (StartMqHost)
+                {
+                    var redisManager = new BasicRedisClientManager();
+                    var mqHost = new RedisMqServer(redisManager);
+                    mqHost.RegisterHandler<Reverse>(ServiceController.ExecuteMessage);
+                    mqHost.Start();
+                    this.Container.Register((IMessageService)mqHost);
+                }
             }
 
             //Configure ServiceStack Authentication and CustomUserSession
             private void ConfigureAuth(Funq.Container container)
             {
                 Routes
-                    .Add<Auth>("/auth")
-                    .Add<Auth>("/auth/{provider}")
                     .Add<Registration>("/register");
 
                 var appSettings = new AppSettings();

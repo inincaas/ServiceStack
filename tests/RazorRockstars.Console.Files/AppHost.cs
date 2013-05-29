@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
 using Funq;
 using ServiceStack.Common;
 using ServiceStack.Common.Web;
 using ServiceStack.DataAnnotations;
 using ServiceStack.OrmLite;
-using ServiceStack.Razor2;
+using ServiceStack.Razor;
 using ServiceStack.ServiceHost;
 using ServiceStack.ServiceInterface;
 using ServiceStack.WebHost.Endpoints;
@@ -62,6 +61,7 @@ namespace RazorRockstars.Console.Files
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int? Age { get; set; }
+        public bool Alive { get; set; }
 
         public Rockstar() { }
         public Rockstar(int id, string firstName, string lastName, int age)
@@ -83,6 +83,7 @@ namespace RazorRockstars.Console.Files
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int? Age { get; set; }
+        public bool Alive { get; set; }
         public string Delete { get; set; }
         public string View { get; set; }
         public string Template { get; set; }

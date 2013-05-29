@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Web;
@@ -32,6 +33,7 @@ namespace ServiceStack.Html
 			typeof(InputExtensions),
 			typeof(LabelExtensions),
 			typeof(TextAreaExtensions),
+            typeof(SelectExtensions)
 		};
 
 		public static MethodInfo GetMethod(string methodName)
@@ -53,20 +55,23 @@ namespace ServiceStack.Html
 
         public IHttpRequest HttpRequest { get; set; }
         public IHttpResponse HttpResponse { get; set; }
+        public StreamWriter Writer { get; set; }
         public IViewEngine ViewEngine { get; set; }
 
-	    public MarkdownPage MarkdownPage { get; protected set; }
+        public IRazorView RazorPage { get; protected set; }
+        public MarkdownPage MarkdownPage { get; protected set; }
 		public Dictionary<string, object> ScopeArgs { get; protected set; }
 	    private ViewDataDictionary viewData;
 
-        public void SetState(HtmlHelper htmlHelper)
+        public void Init(IViewEngine viewEngine, IHttpRequest httpReq, IHttpResponse httpRes, IRazorView razorPage, 
+            Dictionary<string, object> scopeArgs = null, ViewDataDictionary viewData = null)
         {
-            if (htmlHelper == null) return;
-
-            HttpRequest = htmlHelper.HttpRequest;
-            HttpResponse = htmlHelper.HttpResponse;
-            ScopeArgs = htmlHelper.ScopeArgs;
-            viewData = htmlHelper.ViewData;
+            ViewEngine = viewEngine;
+            HttpRequest = httpReq;
+            HttpResponse = httpRes;
+            RazorPage = razorPage;
+            //ScopeArgs = scopeArgs;
+            this.viewData = viewData;
         }
 
 	    private static int counter = 0;
@@ -109,7 +114,7 @@ namespace ServiceStack.Html
             try
             {
                 this.viewData = new ViewDataDictionary(model);
-                var result = ViewEngine.RenderPartial(viewName, model, this.RenderHtml, this);
+                var result = ViewEngine.RenderPartial(viewName, model, this.RenderHtml, Writer, this);
                 return MvcHtmlString.Create(result);
             }
             finally
@@ -161,6 +166,11 @@ namespace ServiceStack.Html
 	        get { return viewData ?? (viewData = new ViewDataDictionary()); }
 	        protected set { viewData = value; }
 	    }
+
+        public void SetModel(object model)
+        {
+			ViewData.Model = model;
+        }
 
         public IViewDataContainer ViewDataContainer { get; internal set; }
 
@@ -430,7 +440,7 @@ namespace ServiceStack.Html
 			var strContent = content as string;
             return MvcHtmlString.Create(strContent ?? content.ToString()); //MvcHtmlString
 		}
-	}
+    }
 
 	public static class HtmlHelperExtensions
 	{

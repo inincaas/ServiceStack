@@ -160,6 +160,8 @@ namespace ServiceStack.ServiceClient.Web
 
         private static string FormatValue(object value)
         {
+            if (value == null) return null;
+
             var jsv = value.ToJsv().Trim(ArrayBrackets);
             return jsv;
         }
@@ -167,16 +169,22 @@ namespace ServiceStack.ServiceClient.Web
         [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1401:FieldsMustBePrivate", Justification = "Using field is just easier.")]
         public static Func<object, string> FormatVariable = value =>
         {
+            if (value == null) return null;
+
             var valueString = value as string;
-            return valueString != null ? Uri.EscapeDataString(valueString) : FormatValue(value).Trim('"');
+            valueString = valueString ?? FormatValue(value);
+            return Uri.EscapeDataString(valueString);
         };
 
         [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1401:FieldsMustBePrivate", Justification = "Using field is just easier.")]
         public static Func<object, string> FormatQueryParameterValue = value =>
         {
+            if (value == null) return null;
+
             // Perhaps custom formatting needed for DateTimes, lists, etc.
             var valueString = value as string;
-            return valueString != null ? Uri.EscapeDataString(valueString) : FormatValue(value);
+            valueString = valueString ?? FormatValue(value);
+            return Uri.EscapeDataString(valueString);
         };
 
         private const char PathSeparatorChar = '/';
@@ -197,15 +205,17 @@ namespace ServiceStack.ServiceClient.Web
             this.queryProperties = GetQueryProperties(type);
             foreach (var variableName in GetUrlVariables(path))
             {
-	            RouteMember propertyInfo;
-	            if (!this.queryProperties.TryGetValue(variableName, out propertyInfo))
-	            {
-		            this.AppendError("Variable '{0}' does not match any property.".Fmt(variableName));
-		            continue;
-	            }
+                var safeVarName = variableName.TrimEnd('*');
 
-				this.variablesMap[variableName] = propertyInfo;
-		        this.queryProperties.Remove(variableName);
+                RouteMember propertyInfo;
+                if (!this.queryProperties.TryGetValue(safeVarName, out propertyInfo))
+                {
+	                this.AppendError("Variable '{0}' does not match any property.".Fmt(variableName));
+	                continue;
+                }
+
+                this.queryProperties.Remove(safeVarName);
+                this.variablesMap[variableName] = propertyInfo;
             }
         }
 
@@ -247,7 +257,8 @@ namespace ServiceStack.ServiceClient.Web
             {
                 var property = variable.Value;
                 var value = property.GetValue(request);
-                if (value == null)
+                var isWildCard = variable.Key.EndsWith("*");
+                if (value == null && !isWildCard)
                 {
                     unmatchedVariables.Add(variable.Key);
                     continue;

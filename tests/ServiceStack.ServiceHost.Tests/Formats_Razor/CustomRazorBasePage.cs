@@ -1,9 +1,9 @@
-﻿using ServiceStack.Razor2;
+﻿using ServiceStack.Razor;
 using ServiceStack.ServiceHost.Tests.AppData;
 
 namespace ServiceStack.ServiceHost.Tests.Formats_Razor
 {
-	public abstract class CustomRazorBasePage<TModel> : ViewPage<TModel>
+	public abstract class CustomRazorBasePage<TModel> : ViewPage<TModel> where TModel : class
 	{
 		public FormatHelpers Fmt = new FormatHelpers();
 		public NorthwindHelpers Nwnd = new NorthwindHelpers();
