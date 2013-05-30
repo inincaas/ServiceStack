@@ -193,7 +193,8 @@ namespace ServiceStack.Owin.Infrastructure
             get
             {
                 ReadFormData();
-                throw new NotImplementedException();
+                // Still not implemented.
+                return new IFile[0];
             }
         }
 
@@ -243,7 +244,6 @@ namespace ServiceStack.Owin.Infrastructure
         private void ProcessMultiPartForm()
         {
             // TODO: Need to implement this.
-            throw new NotImplementedException();
         }
 
         private static IEnumerable<KeyValuePair<string, string>> ParseValues(string value, char[] delimiters)
